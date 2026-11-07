@@ -1,0 +1,122 @@
+# =============================================================================
+# ProcureFlow AI: .gitignore
+# This repository is PUBLIC and uses SYNTHETIC data only.
+# Rule: no secret, credential, personal detail or real business data may ever be committed.
+# This file lists things Git must NEVER save. Add to it, do not remove from it,
+# unless you understand exactly what you are un-protecting.
+# =============================================================================
+
+# --- Secrets and credentials (most important section) ------------------------
+# Real environment files. Only the *.example templates may be committed.
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.env
+secrets/
+.secrets/
+credentials*
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+id_rsa*
+id_ed25519*
+*.kdbx
+.npmrc
+.pypirc
+.netrc
+
+# --- Claude Code and AI-tool local files -------------------------------------
+# Personal settings and personal instructions stay on your machine.
+.claude/settings.local.json
+.claude/worktrees/
+CLAUDE.local.md
+
+# --- Local backups that contain personal details -----------------------------
+# docs/archive/ holds backups of earlier document revisions. One contains a local username.
+# Git history is the real backup once the documents are committed.
+docs/archive/
+
+# --- Python --------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+
+# --- Node.js / Next.js / frontend ---------------------------------------------
+node_modules/
+.next/
+out/
+.turbo/
+.vercel/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+
+# --- Test and tool output ------------------------------------------------------
+playwright-report/
+test-results/
+blob-report/
+coverage/
+# Eval run results are generated. Baselines and recorded fixtures (synthetic) ARE committed.
+evals/results/
+
+# --- Local data: databases, vector store, uploads, backups ---------------------
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.gz
+*.bak
+pgdata/
+postgres-data/
+qdrant_storage/
+qdrant-data/
+uploads/
+backups/
+snapshots/
+
+# --- Docker and local overrides ------------------------------------------------
+compose.override.yaml
+compose.override.yml
+docker-compose.override.yml
+docker-compose.override.yaml
+
+# --- Logs and temporary files ---------------------------------------------------
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+*~
+
+# --- Operating system and editor files -----------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+.idea/
+.vscode/*
+!.vscode/extensions.json

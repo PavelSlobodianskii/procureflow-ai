@@ -1,0 +1,30 @@
+# =============================================================================
+# ProcureFlow AI: .gitattributes
+# Purpose: make line endings identical for everyone (Windows, Linux, CI).
+# Without this, Windows turns every line ending into CRLF and Git prints warnings.
+# =============================================================================
+
+# Default: Git detects text files and stores them with LF line endings.
+# "eol=lf" also writes LF into your working folder on Windows,
+# which overrides the core.autocrlf setting for this repository.
+* text=auto eol=lf
+
+# Scripts that must keep their own style
+*.sh text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files: never convert or diff as text
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.zip binary
+*.gz binary
+*.onnx binary
