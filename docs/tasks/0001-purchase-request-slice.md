@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Integration branch** | `feat/purchase-request-slice` (lead) |
-| **Status** | **API contract v1 is APPROVED and FROZEN by the owner (2026-11-08).** Backend and frontend are implemented and merged into `feat/purchase-request-slice` (section 12). Not pushed. Not merged into `main`. Known limitations accepted by the owner are in section 13. Published as a pull request for review (section 12.1). Not merged into `main` |
+| **Status** | **API contract v1 is APPROVED and FROZEN by the owner (2026-11-08).** Backend and frontend are implemented and merged into `feat/purchase-request-slice` (section 12). Pushed, then merged into `main` as PR #4 on 2026-11-08 (sections 12.1 and 12.2). Known limitations accepted by the owner are in section 13 |
 | **Budget** | EUR 0. No paid or external services. No API keys. No live LLM |
 | **Data** | Synthetic only |
 | **Workflow** | Two writing Claude Code sessions in two Git worktrees (backend, frontend), coordinated by a lead session |
@@ -369,9 +369,20 @@ Run by the lead on `feat/purchase-request-slice` at merge commit `f10be82`, befo
 
 **Deferred security findings.** All of section 13 is deferred by the owner's decision: B1 (Medium), B2 to B6, F1 to F3 (Low) and the info items. The frontend CSP currently contains only `frame-ancestors 'none'` (F2). Run only on `127.0.0.1` with synthetic data.
 
+### 12.2 After the merge (2026-11-08)
+
+| Item | Fact |
+|---|---|
+| Merge | PR #4 (`feat/purchase-request-slice` into `main`) was merged on GitHub on 2026-11-08 at 14:21 UTC as merge commit `5172b9e`. `main` now contains `backend/`, `frontend/` and `contracts/` |
+| Contract | The tree of `contracts/` on `main` is `62f0a6f7e20aa7a17b8f9bc2e66f50c7bc7a61bf`, identical to the frozen commit `3bd35bf` |
+| Backend on Vercel | **Deployed:** yes, observed on 2026-11-08 at a public `*.vercel.app` URL (the URL is not recorded here). **Tested:** only with read-only GET probes of the public URL (200 on `/health`, the contract's 404 and 405 problems elsewhere). The 614-check contract replay ran against a local backend, not against the public deployment, and no POST was sent to it. **Production-ready:** no. It is reachable without authentication and keeps drafts in process memory, which is the exposure that section 13 forbids. Containment and replacement: task 0002 (decisions B-5 and B-6) |
+| Frontend on Vercel | **Not verified.** The owner refers to an existing frontend project. Its URL has not been provided and nothing can be read from Vercel (MCP server not authenticated). The frontend is tested locally only (371 tests, lint, typecheck, build) |
+| Deploy source and settings | Not verified for either project. GitHub shows no Vercel deployment record or status for the repository, which suggests a deployment that did not come through the Vercel GitHub integration. Nothing about the projects' configuration is assumed. The verification record is task 0002 section 4 |
+| Amendment (D5) | Criterion B4 above ("no network call of any kind") applies to task 0001 only. Task 0002 may add one PostgreSQL connection (Neon Free) once the owner approves the driver dependency. The static test that forbids network libraries is then changed deliberately and visibly, not worked around |
+
 ## 13. Known limitations from the security reviews (accepted by the owner, 2026-11-08)
 
-The owner chose to merge without a fix round. Until these are handled, run only on `127.0.0.1` with synthetic data, and do not expose the backend, the mock or the Next.js server through a tunnel or any other network.
+The owner chose to merge without a fix round. Until these are handled, run only on `127.0.0.1` with synthetic data, and do not expose the backend, the mock or the Next.js server through a tunnel or any other network. **The only permitted exception** is the owner-only Vercel demo of task 0002 (decisions B-5 and B-6): Vercel Authentication on the frontend, and a gateway token on the backend.
 
 | ID | Severity | Where | Limitation | Planned handling |
 |---|---|---|---|---|
