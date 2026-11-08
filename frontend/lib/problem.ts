@@ -3,6 +3,7 @@ import {
   ERROR_CODES,
   PROBLEM_STATUSES,
   PROBLEM_TYPES,
+  STORAGE_MODES,
   type FieldError,
   type Problem,
   type PurchaseRequestDraft,
@@ -71,13 +72,18 @@ function isMoneyAmount(value: unknown): boolean {
   return typeof value === "string" && MONEY_AMOUNT.test(value);
 }
 
+/** Exactly the values of contract v1 ("in_memory_dev") and v1.1 ("postgres"). Anything else is unexpected. */
+function isStorageMode(value: unknown): boolean {
+  return (STORAGE_MODES as readonly unknown[]).includes(value);
+}
+
 export function isDraft(value: unknown): value is PurchaseRequestDraft {
   if (!isObject(value)) return false;
   if (!hasExactKeys(value, ["id", "status", "created_at", "storage_mode", "data", "estimated_total"])) return false;
   if (typeof value.id !== "string" || !DRAFT_ID.test(value.id)) return false;
   if (value.status !== "draft") return false;
   if (typeof value.created_at !== "string" || !CREATED_AT.test(value.created_at)) return false;
-  if (value.storage_mode !== "in_memory_dev") return false;
+  if (!isStorageMode(value.storage_mode)) return false;
 
   const { data, estimated_total: total } = value;
   if (!isObject(data)) return false;

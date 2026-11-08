@@ -9,7 +9,7 @@ import { REQUEST_TIMEOUT_MS } from "@/lib/api-client";
 import { DICTIONARIES, LANGUAGE_CODES, type Dictionary, type Language } from "@/lib/i18n";
 import { LANGUAGE_STORAGE_KEY, THEME_STORAGE_KEY, resetPreferencesForTests, setLanguage } from "@/lib/preferences";
 import { readContractJson } from "./helpers/contract";
-import { created, problem, respond, stubFetch } from "./helpers/form";
+import { created, createdPostgres, problem, respond, stubFetch } from "./helpers/form";
 
 const OTHER = LANGUAGE_CODES.filter((code) => code !== "en");
 
@@ -399,6 +399,27 @@ describe("success state in other languages", () => {
     expect(panel.getByText("PR-2026-000001")).toBeInTheDocument();
     expect(panel.getByText("Synthetic office chairs, model A")).toBeInTheDocument();
     expect(panel.getByText("Alex Example")).toBeInTheDocument();
+  });
+
+  it.each(LANGUAGE_CODES)("%s: a PostgreSQL draft is described as saved in the demo database, not as temporary storage", async (code) => {
+    stubFetch(async () => createdPostgres());
+    const { user } = renderPage();
+    await choose(user, code);
+    const t = DICTIONARIES[code];
+    await fillValid(user);
+    await user.click(submit());
+
+    await screen.findByRole("heading", { name: t.success.title });
+    const panel = within(screen.getByRole("region", { name: t.success.title }));
+    const note = screen.getByRole("note");
+    expect(note).toHaveTextContent(t.success.postgresNoteStrong);
+    expect(note).toHaveTextContent(t.success.postgresNoteBody);
+    expect(note).not.toHaveTextContent(t.success.noteStrong);
+    expect(note).not.toHaveTextContent(t.success.noteBody);
+    expect(panel.getByText(t.success.postgresStorageValue)).toBeInTheDocument();
+    expect(panel.queryByText(t.success.storageValue)).not.toBeInTheDocument();
+    expect(panel.getByText(t.success.statusValue)).toBeInTheDocument(); // still only a draft
+    expect(panel.getByText("PR-2026-000001")).toBeInTheDocument();
   });
 
   it("formats amounts for the language (German 2.499,00, Spanish 2.499,00, Russian 2 499,00, English 2,499.00)", async () => {

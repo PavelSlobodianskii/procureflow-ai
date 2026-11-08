@@ -137,6 +137,33 @@ describe("draft-only wording in every language (no approval, order, supplier or 
   });
 });
 
+describe("PostgreSQL draft wording (contract v1.1) in every language", () => {
+  it.each(LANGUAGE_CODES)("%s has its own text and does not claim the storage is temporary", (code) => {
+    const s = DICTIONARIES[code].success;
+    for (const text of [s.postgresNoteStrong, s.postgresNoteBody, s.postgresStorageValue]) {
+      expect(text.trim()).not.toBe("");
+    }
+    expect(s.postgresNoteStrong).not.toBe(s.noteStrong);
+    expect(s.postgresNoteBody).not.toBe(s.noteBody);
+    expect(s.postgresStorageValue).not.toBe(s.storageValue);
+    expect(s.postgresStorageValue).toContain("PostgreSQL"); // the technical name is never translated
+  });
+
+  it("English: says it is only a draft, was sent to no one, and promises nothing about being lost", () => {
+    const s = DICTIONARIES.en.success;
+    expect(s.postgresNoteBody).toMatch(/only a draft/i);
+    expect(s.postgresNoteBody).toMatch(/not been sent to anyone/i);
+    expect(`${s.postgresNoteStrong} ${s.postgresNoteBody}`).not.toMatch(/temporary|lost|restart|memory/i);
+  });
+
+  it("the in-memory wording still warns that the draft is lost on restart, in every language", () => {
+    expect(DICTIONARIES.en.success.noteBody).toMatch(/lost when the server restarts/i);
+    expect(DICTIONARIES.de.success.noteBody).toMatch(/geht verloren/i);
+    expect(DICTIONARIES.es.success.noteBody).toMatch(/se pierde/i);
+    expect(DICTIONARIES.ru.success.noteBody).toMatch(/потерян/i);
+  });
+});
+
 describe("plural forms (built-in Intl.PluralRules, no library)", () => {
   it("English: 1 error, 2 errors", () => {
     expect(DICTIONARIES.en.announce.clientErrors(1)).toContain("1 error.");

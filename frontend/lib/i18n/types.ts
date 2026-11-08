@@ -86,6 +86,10 @@ export interface Dictionary {
     lead: string;
     noteStrong: string;
     noteBody: string;
+    /** Shown instead of the three entries for the in-memory case when the server says storage_mode "postgres". */
+    postgresNoteStrong: string;
+    postgresNoteBody: string;
+    postgresStorageValue: string;
     id: string;
     status: string;
     statusValue: string;

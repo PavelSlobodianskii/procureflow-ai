@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createPurchaseRequest, CREATE_REQUEST_URL, REQUEST_TIMEOUT_MS } from "@/lib/api-client";
 import type { CreatePurchaseRequest } from "@/lib/types";
-import { readContractJson, validRequest } from "./helpers/contract";
+import { CONTRACT_V1_1, readContractJson, validRequest } from "./helpers/contract";
 
 const body = validRequest() as unknown as CreatePurchaseRequest;
 
@@ -61,6 +61,24 @@ describe("createPurchaseRequest: results", () => {
       expect(result.draft.id).toBe("PR-2026-000001");
       expect(result.draft.status).toBe("draft");
     }
+  });
+
+  it("201 from a v1.1 server (storage_mode postgres) -> created, and the value is kept", async () => {
+    stubFetch(async () =>
+      jsonResponse(readContractJson("examples/create-response.201.postgres.json", CONTRACT_V1_1), 201),
+    );
+    const result = await createPurchaseRequest(body);
+    expect(result.kind).toBe("created");
+    if (result.kind === "created") {
+      expect(result.draft.storage_mode).toBe("postgres");
+      expect(result.draft.status).toBe("draft");
+    }
+  });
+
+  it("201 with a storage_mode that no contract version knows -> unexpected, nothing is shown", async () => {
+    const payload = { ...readContractJson<Record<string, unknown>>("examples/create-response.201.json"), storage_mode: "sqlite" };
+    stubFetch(async () => jsonResponse(payload, 201));
+    expect(await createPurchaseRequest(body)).toEqual({ kind: "unexpected", httpStatus: 201 });
   });
 
   it("422 with errors -> validation, keeping the contract's order and texts", async () => {

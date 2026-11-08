@@ -7,6 +7,7 @@ import { REQUEST_TIMEOUT_MS } from "@/lib/api-client";
 import { messages, readContractJson } from "./helpers/contract";
 import {
   created,
+  createdPostgres,
   field,
   fillValid,
   pendingFetch,
@@ -192,6 +193,29 @@ describe("success state", () => {
     expect(screen.getByText("Alex Example")).toBeInTheDocument();
     expect(screen.getByRole("note")).toHaveTextContent(/temporary development storage/i);
     expect(screen.getByRole("note")).toHaveTextContent(/lost when the server restarts/i);
+    expect(screen.getByRole("status")).toHaveTextContent("Draft saved.");
+  });
+
+  it("describes a PostgreSQL draft accurately: saved in the demo database, not temporary storage", async () => {
+    stubFetch(async () => createdPostgres());
+    const user = setup();
+    await fillValid(user);
+    await user.click(submitButton());
+
+    const heading = await screen.findByRole("heading", { name: "Draft saved" });
+    expect(heading).toHaveFocus();
+    const note = screen.getByRole("note");
+    expect(note).toHaveTextContent("Saved in the demo database.");
+    expect(note).toHaveTextContent(/still only a draft/i);
+    expect(note).toHaveTextContent(/not been sent to anyone/i);
+    expect(note).not.toHaveTextContent(/temporary development storage/i);
+    expect(note).not.toHaveTextContent(/lost when the server restarts/i);
+    expect(screen.getByText("Demo database (PostgreSQL)")).toBeInTheDocument();
+    expect(screen.queryByText("Temporary development storage")).not.toBeInTheDocument();
+    // Everything else about the draft is shown exactly as for an in-memory draft.
+    expect(screen.getByText("PR-2026-000001")).toBeInTheDocument();
+    expect(screen.getByText("Draft")).toBeInTheDocument();
+    expect(screen.getByText("2,499.00 EUR")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Draft saved.");
   });
 

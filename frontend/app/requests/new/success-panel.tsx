@@ -62,6 +62,11 @@ export function SuccessPanel({ draft, onCreateAnother }: { draft: PurchaseReques
 
   const { data, estimated_total: total } = draft;
   const s = t.success;
+  // The server says where the draft is kept (contract v1 and v1.1). Describe it accurately.
+  const inMemory = draft.storage_mode === "in_memory_dev";
+  const noteStrong = inMemory ? s.noteStrong : s.postgresNoteStrong;
+  const noteBody = inMemory ? s.noteBody : s.postgresNoteBody;
+  const storageValue = inMemory ? s.storageValue : s.postgresStorageValue;
 
   return (
     <section
@@ -91,7 +96,7 @@ export function SuccessPanel({ draft, onCreateAnother }: { draft: PurchaseReques
         >
           <IconInfo className="mt-0.5 h-5 w-5 shrink-0" />
           <span>
-            <strong>{s.noteStrong}</strong> {s.noteBody}
+            <strong>{noteStrong}</strong> {noteBody}
           </span>
         </p>
 
@@ -112,8 +117,8 @@ export function SuccessPanel({ draft, onCreateAnother }: { draft: PurchaseReques
           <Tile label={s.created} icon={<IconCalendar className="h-4 w-4" />} tone="teal">
             {formatTimestamp(draft.created_at)}
           </Tile>
-          <Tile label={s.storage} icon={<IconDatabase className="h-4 w-4" />} tone="warn">
-            {s.storageValue}
+          <Tile label={s.storage} icon={<IconDatabase className="h-4 w-4" />} tone={inMemory ? "warn" : "teal"}>
+            {storageValue}
           </Tile>
           <Tile label={s.description} icon={<IconFileText className="h-4 w-4" />} tone="brand" wide>
             {data.description}

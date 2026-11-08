@@ -1,0 +1,14 @@
+{
+  "type": "urn:procureflow:problem:validation-error",
+  "title": "Validation failed",
+  "status": 422,
+  "detail": "One or more fields are invalid.",
+  "instance": "/api/v1/requests",
+  "errors": [
+    { "field": "description", "code": "too_short", "message": "Description must be at least 3 characters." },
+    { "field": "quantity", "code": "out_of_range", "message": "Quantity must be between 1 and 100000." },
+    { "field": "unit_price", "code": "invalid_format", "message": "Unit price must be a positive amount with at most 2 decimal places, for example \"249.90\"." },
+    { "field": "currency", "code": "invalid_choice", "message": "Currency must be one of: EUR, USD, GBP, CHF." },
+    { "field": "requester_display_name", "code": "too_short", "message": "Requester display name must be at least 2 characters." }
+  ]
+}

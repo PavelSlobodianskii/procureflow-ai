@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
 import { vi } from "vitest";
-import { readContractJson } from "./contract";
+import { CONTRACT_V1_1, readContractJson } from "./contract";
 
 export const LABELS = {
   description: "Description",
@@ -38,6 +38,10 @@ export function respond(payload: unknown, status: number, contentType = "applica
 }
 
 export const created = () => respond(readContractJson("examples/create-response.201.json"), 201);
+
+/** A 201 as a contract v1.1 server sends it when the draft is stored in PostgreSQL. */
+export const createdPostgres = () =>
+  respond(readContractJson("examples/create-response.201.postgres.json", CONTRACT_V1_1), 201);
 
 export const problem = (example: string, status: number) =>
   respond(readContractJson(`examples/${example}`), status, "application/problem+json");

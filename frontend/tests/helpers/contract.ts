@@ -5,15 +5,22 @@ import { resolve } from "node:path";
  * Read-only access to the frozen contract in contracts/purchase-request-v1/ (test code only).
  * The tests never write to it, and the app code never imports from it.
  * Tests run with frontend/ as the working directory (npm test), so the contract is one level up.
+ *
+ * The folder defaults to v1. Pass CONTRACT_V1_1 to read the additive revision in
+ * contracts/purchase-request-v1.1/ (it adds only the storage_mode value "postgres").
  */
 
-const CONTRACT_DIR = resolve(process.cwd(), "..", "contracts", "purchase-request-v1");
+export const CONTRACT_V1 = "purchase-request-v1";
+export const CONTRACT_V1_1 = "purchase-request-v1.1";
 
-export function readContractJson<T = unknown>(relativePath: string): T {
-  if (!existsSync(CONTRACT_DIR)) {
+const CONTRACTS_ROOT = resolve(process.cwd(), "..", "contracts");
+
+export function readContractJson<T = unknown>(relativePath: string, folder: string = CONTRACT_V1): T {
+  const directory = resolve(CONTRACTS_ROOT, folder);
+  if (!existsSync(directory)) {
     throw new Error("Contract folder not found. Run the tests from the frontend/ folder (npm test).");
   }
-  return JSON.parse(readFileSync(resolve(CONTRACT_DIR, relativePath), "utf8")) as T;
+  return JSON.parse(readFileSync(resolve(directory, relativePath), "utf8")) as T;
 }
 
 export interface ExpectedError {
