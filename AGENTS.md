@@ -21,7 +21,7 @@ request -> RFQ -> quotes -> compliance -> human approval -> purchase order (PO).
 - Planning documents (read them before big changes):
   - `docs/architecture.md`: the system design and the approved decisions.
   - `docs/ai-native-operating-model.md`: how this project is built with AI tools.
-- **No implementation has started yet.** Do not create application code, folders or tooling unless the task asks for it.
+- Task 0001 (the purchase-request slice: a Next.js form and a FastAPI draft endpoint) is implemented and merged into `main`. Everything beyond it is not built yet. Do not create application code, folders or tooling unless the task asks for it.
 
 ## Budget: strict EUR 5 per calendar month (decision B-4, approved)
 
@@ -32,6 +32,7 @@ The existing Claude and Cursor subscriptions are not counted.
 - **Never put a payment card or paid account on file** for any service on the owner's behalf.
 - **No paid domain.** Use free URLs and tunnels only (B-3).
 - **Default deployment is local Docker** (target "T0"). Oracle Cloud Free Tier is an optional experiment. Never upgrade it to Pay-As-You-Go. A paid server is not approved.
+- **Approved free demo target "T3" (decision B-5, 2026-11-08):** Vercel Hobby plus Neon Free, as two separate Vercel projects. No card, no paid plan, no domain. Never upgrade either service, never add a card, and never use Vercel Password Protection or any Pro feature (they cost money). Rules and workflow: `docs/tasks/0002-vercel-deployment.md`.
 - **Do not call the Anthropic API or any other paid or external API** unless the task explicitly says so and the owner has approved it. Tests and development use recorded or fake LLM responses (`LLM_MODE=replay` is the default; `fake` is also free). Live modes (`live-haiku`, `live-sonnet`) are run by the human only, with a capped key.
 - Any approved purchase must be recorded in the spend ledger in `docs/architecture.md` Section 13. If a task could cost money, stop and ask first.
 
@@ -60,6 +61,7 @@ The GitHub repository is **public**. Anything committed is visible to everyone.
 - Never commit secrets, API keys, tokens, passwords, private keys, personal information, real names, or local absolute paths that contain a username.
 - Never read, print, copy or edit `.env*` files, `~/.ssh`, or credential stores. Do not try to work around a block.
 - You may only see **Tier 0** (public config) and **Tier 1** (visibly fake local-dev values, prefixed `dev-`) credentials. Real or capped keys (Tier 2) and production secrets (Tier 3) are never yours to see or use.
+- The Neon connection string and the gateway token for the Vercel deployment are **Tier 2**. The owner types them into the Vercel dashboard. They never appear in source code, docs, chat, logs, test output or a commit, and you never ask for them.
 - If you notice a possible secret in a file or in command output, stop and tell the owner at once. Do not repeat it.
 
 ## Workflow rules
@@ -68,6 +70,7 @@ The GitHub repository is **public**. Anything committed is visible to everyone.
 - Keep changes small. Write or update tests together with the code. Run the quick check before saying a task is done. Say clearly if something was not run or failed.
 - Do not edit: `.env*`, applied database migrations, `.github/**`, `CLAUDE.md`, `AGENTS.md`. Only the lead changes these.
 - Never run: force-push, deploy commands, commands that touch production, `rm -rf`, `docker system prune`, or anything that reads secrets.
+- **Deployments are run by the owner only**, using the workflow in `docs/tasks/0002-vercel-deployment.md`. Never run `vercel` commands, never hold a Vercel or Neon token, and never change Vercel or Neon settings. The Vercel MCP server may be used only for read-only calls (for example listing deployments), only after the owner has authenticated it and asked for that check. It must never create, change, deploy or delete anything.
 - Do not commit or push unless the owner asks. Do not install software or add a dependency unless the task needs it. When you propose a dependency, state why it is needed, its licence and its maintenance status.
 - Use short-lived branches and Conventional Commits (`feat:`, `fix:`, `docs:`) when the owner asks you to commit.
 - Never take irreversible actions (deleting files, rewriting git history, dropping data) without asking first.

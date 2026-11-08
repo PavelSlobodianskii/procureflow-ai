@@ -6,7 +6,7 @@
 | **Date** | 2026-11-07 |
 | **Scope** | System architecture planning only. No implementation has started |
 | **Companion document** | [`ai-native-operating-model.md`](./ai-native-operating-model.md) |
-| **Decision status convention** | Every decision is **Proposed — pending approval** unless the project owner has explicitly approved it. Only the baseline decisions in Section 0 (the 12 original ones and B-1 to B-4) are approved |
+| **Decision status convention** | Every decision is **Proposed — pending approval** unless the project owner has explicitly approved it. Only the baseline decisions in Section 0 (the 12 original ones and B-1 to B-6) are approved |
 
 ---
 
@@ -37,6 +37,8 @@ These 12 decisions were approved by the project owner after the requirements rev
 | **B-2** | **Public GitHub repository, synthetic data only.** No secrets, credentials or private information may be committed | **Approved** |
 | **B-3** | **No paid domain.** Free URLs and tunnels only | **Approved** |
 | **B-4** | **Strict maximum of EUR 5 per calendar month** for all additional purchases and services combined. The existing Claude and Cursor subscriptions are excluded. **Nothing is purchased and no paid service is enabled without the project owner's explicit approval** | **Approved** |
+| **B-5** | **T3 demo target (approved 2026-11-08).** Vercel Hobby (frontend and backend as two separate projects) plus Neon Free (PostgreSQL). No card, no paid plan, no domain. Demo only, synthetic data only. A database must exist before any production write is enabled (task 0002). T0 stays the baseline | **Approved** |
+| **B-6** | **No unrestricted public access (approved 2026-11-08).** Until authentication (S1) exists and the findings B1 to B5 of task 0001 are fixed, every public URL must be owner-only (Vercel Authentication, scope "All Deployments"), and the backend must answer requests without the gateway token with the contract's 404 problem | **Approved** |
 
 All AD decisions in Section 15 stay **Proposed — pending approval**, including AD-9 and AD-15, even though they implement B-1 to B-4.
 
@@ -461,6 +463,7 @@ Integrations live in `integrations/` behind interfaces ("ports and adapters"), s
 | **T0: local-first (baseline)** | The full stack runs in Docker on the developer PC. For public demos, a **time-boxed free tunnel** (Cloudflare quick tunnel or Tailscale Funnel) exposes only the `demo` profile | EUR 0 | On demand, while the PC is on | **Approved baseline (B-1)** |
 | **T1: Oracle Cloud Always Free** | The same Compose stack on one ARM VM (2 OCPU, 12 GB RAM), arm64 images | EUR 0 if it stays inside Always Free | Always on, with the risks below | **Optional experiment, not a dependency (B-1)** |
 | **T2: paid VPS** | The same stack on a paid server | About EUR 4.5–7 for hosting alone | Always on | **Reference only.** Needs a raised budget (roughly EUR 8–12) approved explicitly |
+| **T3: Vercel Hobby + Neon Free (demo only)** | Two Vercel projects (Next.js frontend, FastAPI backend) and one Neon Free PostgreSQL database | EUR 0 | Always on while inside the free limits. Passing a limit pauses or blocks the service. It does not bill | **Approved (B-5)** |
 
 **Always-on static showcase (EUR 0):** screenshots, a recorded walkthrough and the documentation on GitHub Pages (or similar). It gives a permanent portfolio link while the live demo is off.
 
@@ -498,6 +501,24 @@ Prices from provider pages on 2026-11-07, before 19% German VAT unless stated. *
 
 No always-on 4 GB server fits under EUR 5 together with any LLM spend. **Free platform-as-a-service hosts do not fit either:** the worker alone needs about 0.7–1.1 GB, and Render free sleeps and has no background workers, Fly.io has no free tier for new accounts, Koyeb lists no free compute, Hugging Face Docker Spaces need a paid plan, and Google's e2-micro is too small.
 
+### T3: Vercel Hobby and Neon Free (demo only, B-5 and B-6)
+**Verified facts** (vendor documentation, read on 2026-11-08; they can change):
+- **Vercel Hobby:** free, no billing cycle. Passing a usage limit pauses the feature, normally for up to 30 days. Non-commercial, personal use only. Python 3.12 (default), 3.13 and 3.14 are supported. At most 3 WAF custom rules.
+- **Vercel Deployment Protection:** Vercel Authentication with scope "All Deployments" is free on every plan. "Standard Protection" leaves production domains public, so it is **not** enough. Password Protection costs 20 USD per month per project and is not available on Hobby.
+- **Neon Free:** permanent, no card. 100 compute-hours per project per month, 1 GB storage per project, compute suspends after 5 minutes idle, 10 branches. Passing a limit suspends compute or blocks writes. It does not bill. The paid plan is usage-priced (compute 0.106 USD per CU-hour, storage 0.35 USD per GB-month).
+
+**Not verified (NV):** whether "Protection Bypass for Automation" and rate-limit rules are available on Hobby, and whether a header set by the frontend proxy reaches an external rewrite destination. The plan does not depend on any of them.
+
+**Rules**
+1. Never upgrade either service, never add a card, never click a Pro or Launch upgrade, and never enable Password Protection.
+2. Create the Neon account directly, not through the Vercel Marketplace, so that no billing link to Vercel exists.
+3. Two Vercel projects. The target settings are Root Directory `frontend` for the frontend and Root Directory `backend` for the backend. They are the plan's targets, not a description of the projects that exist today (task 0002 section 4 records what is verified). The frontend is the only entry point for people and is protected by Vercel Authentication, scope "All Deployments". The backend accepts only requests that carry the gateway token and **keeps its own Vercel Authentication on**.
+4. The gateway token and the Neon connection string are Tier 2 secrets. The owner sets them as Sensitive environment variables with scope "Production" only, so that preview deployments never reach the production database.
+5. Synthetic data only. Kill switch: pause the Vercel project.
+6. Vercel Authentication is never switched off on any project, by any step of the plan or by Claude, without the owner's separate and explicit approval. Removing it from the backend also needs an amendment of B-6 (task 0002, decision D7).
+7. The words "deployed", "tested" and "production-ready" are defined in task 0002 section 2 and are used only as defined. T3 is a demo target and is never described as production-ready.
+8. Workflow, owner and Claude responsibilities, and acceptance criteria: `docs/tasks/0002-vercel-deployment.md`.
+
 ### Cost classification
 
 | Class | Components |
@@ -534,6 +555,8 @@ Anthropic prices read on 2026-11-07: Haiku 5.5 at $0.10 input and $0.50 output p
 | Date | Item | Amount (EUR) | Approved by owner (date) | Month total (EUR) |
 |---|---|---|---|---|
 | — | No purchases made | 0.00 | — | 0.00 |
+| 2026-11-08 | Vercel Hobby, free plan, in use (owner to confirm that no card is on file) | 0.00 | 2026-11-08 | 0.00 |
+| 2026-11-08 | Neon Free, approved but not yet created (no card) | 0.00 | 2026-11-08 | 0.00 |
 
 ### 13.1 Sizing estimate and local benchmark procedure (Revision 3)
 **Status: Proposed — pending approval (AD-9).** The figures below are **my estimates, to be replaced by measurements**. They matter for T1 (12 GB) and for judging a possible T2.
@@ -761,6 +784,7 @@ The mapping of slices to learning stages is in the operating model document.
 | 1 | 2026-11-07 | First architecture proposal (AD-1 to AD-15) |
 | 2 | 2026-11-07 | Addressed the independent architecture review (below) |
 | 3 | 2026-11-07 | Re-baselined deployment and cost on the approved decisions B-1 to B-4: T0 local baseline, optional Oracle T1, EUR 5 strict budget, public repository, no domain. Added AD-16. Superseded baseline decision 5 |
+| 3.1 | 2026-11-08 | Added B-5 (T3: Vercel Hobby plus Neon Free demo target) and B-6 (no unrestricted public access). Added T3 to Section 13 and two zero-cost ledger entries |
 
 **Independent review findings (Revision 2) and where they are addressed**
 
