@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Integration branch** | `feat/purchase-request-slice` (lead) |
-| **Status** | **API contract v1 is APPROVED and FROZEN by the owner (2026-11-08).** Worktrees are not created yet. No application code exists |
+| **Status** | **API contract v1 is APPROVED and FROZEN by the owner (2026-11-08).** Backend and frontend are implemented and merged into `feat/purchase-request-slice` (section 12). Not pushed. Not merged into `main`. Known limitations accepted by the owner are in section 13. Published as a pull request for review (section 12.1). Not merged into `main` |
 | **Budget** | EUR 0. No paid or external services. No API keys. No live LLM |
 | **Data** | Synthetic only |
 | **Workflow** | Two writing Claude Code sessions in two Git worktrees (backend, frontend), coordinated by a lead session |
@@ -305,6 +305,96 @@ Authentication and RBAC, PostgreSQL, Docker, a real worker process, a circuit br
 ## 10. Checkpoints
 
 - **A.** Branch, brief, contract. The owner approved the contract. **(done)**
-- **A2.** The lead commits the brief and `contracts/` (owner-approved, done when this file appears in git history). The lead creates the two worktrees **only after a separate owner go-ahead**. **(current)**
+- **A2.** The lead committed the brief and `contracts/` (`3bd35bf`) and created the two worktrees after the owner's go-ahead. **(done)**
 - **B and C in parallel.** Backend and frontend writers work in their worktrees. Each stops for the owner's verification.
 - **D.** The lead merges, runs the integration checkpoint, writes the README, runs the reviewers, and lists exactly what changed. **Stop before any `git add`, commit or push.**
+
+## 11. Approved scope additions (frontend)
+
+The frontend writer delivered features that the original brief did not list. The owner reviewed them and **approved them as scope additions on 2026-11-08**. They stay in the slice and must be preserved by every later change unless the owner decides otherwise.
+
+| Addition | What it is | Constraints that still apply |
+|---|---|---|
+| Dark mode | Theme toggle (light, dark, system). Applied before first paint by the static script `frontend/public/theme-init.js` | The script has no network access and reads only the saved theme and language |
+| Four languages | English, German, Spanish and Russian, with a language selector and dictionaries in `frontend/lib/i18n/` | See the deviation below |
+| Mascot, confetti, hero artwork, 404 page | Decorative visuals and a branded not-found page | No remote images, fonts or scripts. No external requests |
+| Preferences | Theme and language kept in the browser's `localStorage` (keys `procureflow.theme` and `procureflow.language`) | Nothing else is stored. No personal data. No identifiers |
+
+**Approved deviation from section 4.6.** The brief said the UI shows the server's `message` as-is. In English it still does. In the other three languages the UI looks text up by the stable `field` and `code` (or problem `type`) and falls back to the server's English text when no translation exists. The API payloads, codes and contract are unchanged.
+
+**Unchanged rules:** no approval, release, purchase-order or supplier-selection controls or wording, no Server Actions, no analytics, no external requests, synthetic data only.
+
+## 12. Integration result (2026-11-08)
+
+| Item | Result |
+|---|---|
+| Backend merged | `feat/pr-slice-backend` (`5e386e7`, 2 commits) into `feat/purchase-request-slice` as merge commit `b45dd17` |
+| Frontend merged | `feat/pr-slice-frontend` (`b9b725f`, 1 commit) into `feat/purchase-request-slice` as merge commit `f10be82` |
+| Ownership | 84 files changed since the frozen base. None outside `backend/` and `frontend/`. Merged `backend/` and `frontend/` are identical to their source branches |
+| Contract | `contracts/purchase-request-v1/` is unchanged from the frozen base (`3bd35bf`) |
+| Backend checks (merged checkout) | `pytest` 260 passed, `ruff check` clean, `ruff format --check` clean |
+| Frontend checks | `vitest` 371 passed, `eslint` clean, `tsc --noEmit` clean. Run in the frontend worktree, whose `frontend/` is identical to the merged one, because the main checkout has no `node_modules` yet |
+| Real workflow | Real FastAPI backend (started from the merged checkout), real Next.js server with its same-origin rewrite, and the contract mock: 239 of 239 checks passed. The shared cases gave identical results on all three |
+| Security reviews | Independent read-only `security-reviewer` runs on both branches: **0 critical, 0 high**, 1 medium, 8 low, 11 info |
+| Owner decision | Merge as-is with no fix round. The medium and low findings are accepted as known limitations (section 13) |
+
+Not covered: a manual browser walkthrough, `npm audit` and `pip-audit`, and live visibility of the dispatcher's INFO log (it is covered by unit tests only, because plain uvicorn does not show INFO logs of application loggers).
+
+### 12.1 Pre-publication verification (2026-11-08, before the pull request to `main`)
+
+Run by the lead on `feat/purchase-request-slice` at merge commit `f10be82`, before the commit that adds this subsection.
+
+| Check | Result |
+|---|---|
+| Both workstream branches merged | `feat/pr-slice-backend` and `feat/pr-slice-frontend` are ancestors of the integration branch |
+| Backend `pytest`, `ruff check`, `ruff format --check` | 260 passed, clean, clean |
+| Frontend `vitest`, `eslint`, `tsc --noEmit` | 371 passed (9 files), clean, clean |
+| Frontend `next build` | Succeeded (Next.js 16.4.5, 4 routes). Telemetry was turned off for the run |
+| Contract v1 unchanged | The tree of `contracts/` is identical at the frozen commit `3bd35bf` and at `HEAD`. No uncommitted change |
+| Repository hygiene | No `.env*`, `node_modules`, `.venv`, `.next`, caches or `*.tsbuildinfo` are tracked. All of them are ignored. No secret pattern and no local absolute path found in tracked files |
+| Real backend through the real frontend rewrite | A script replayed all 52 shared cases from `cases.json` and the 400, 404, 405, 413 and 415 error cases against the real backend directly (port 8000) and through the Next.js rewrite (port 3000): 614 of 614 checks passed. Checked: status, JSON Schemas, field, code and order, `messages.json` texts, headers, equality with the example files, no approve, purchase-order or supplier route. Direct and proxied answers were identical in all 52 cases. The script is not part of the repository |
+
+**Caveats on the evidence**
+
+- The backend tests ran in the backend worktree, because the main checkout's virtual environment has no test tools. Its `backend/` is identical to the merged one (empty `git diff`).
+- The first run of the replay script reported 132 failures. All were a bug in the script (case-sensitive header lookup), not in the API. The fixed script passed.
+
+**Not verified (open before any use beyond local development)**
+
+- **No manual browser walkthrough.** The frontend's own tests use the mock or a stubbed `fetch`. The real chain (browser, Next.js, FastAPI) was exercised with HTTP requests only, not with a real browser session. Open `http://127.0.0.1:3000/requests/new` and submit one valid and one invalid form.
+- **The mock was not re-compared with the real API in this run.** Mock and real API agreed in the earlier run (239 of 239). Only the vitest suite covers the mock now.
+- **No dependency advisory check** (`npm audit`, `pip-audit`) has been run.
+- **No CI.** Nothing in this branch runs the tests automatically. The results above come from local runs.
+- **Dispatcher INFO log** is not visible under plain uvicorn. It is covered by unit tests only.
+
+**Deferred security findings.** All of section 13 is deferred by the owner's decision: B1 (Medium), B2 to B6, F1 to F3 (Low) and the info items. The frontend CSP currently contains only `frame-ancestors 'none'` (F2). Run only on `127.0.0.1` with synthetic data.
+
+## 13. Known limitations from the security reviews (accepted by the owner, 2026-11-08)
+
+The owner chose to merge without a fix round. Until these are handled, run only on `127.0.0.1` with synthetic data, and do not expose the backend, the mock or the Next.js server through a tunnel or any other network.
+
+| ID | Severity | Where | Limitation | Planned handling |
+|---|---|---|---|---|
+| B1 | **Medium** | `backend/app/modules/requests/repository_memory.py`, `dispatcher.py`, `domain.py` | The in-memory store never evicts. The dispatcher scans every event, finished ones included, every 0.25 s. A flood of POSTs can slow the whole API, and after 999,999 IDs every POST returns 500 until restart | Dev-only storage. Replaced by PostgreSQL and a real outbox in task 0002, which must also bound the due-event lookup |
+| B2 | Low | `backend/app/modules/requests/schemas.py` (unknown-field errors) | The 422 response echoes every unknown field name without a cap, so the response can be about 13 times the request | Contract v1.1 candidate: report at most 10 unknown fields and truncate echoed names to 64 characters. The frontend already renders `field` as plain text |
+| B3 | Low | `backend/app/modules/requests/schemas.py` (text validation) | Control, zero-width and bidirectional characters are accepted in `description` and `requester_display_name` | Contract v1.1 candidate: reject Unicode categories Cc and Cf. Required before this text reaches logs, emails, PDFs or agent prompts |
+| B4 | Low | `backend/app/modules/requests/api.py` (`Content-Length` check) | `isdigit()` followed by `int()` can raise on a non-ASCII digit and produce a 500. Exploitability behind uvicorn is uncertain | Use `isascii()` with `isdecimal()`, or try/except, in the first backend fix of task 0002 |
+| B5 | Low | `backend/app/main.py` | No Host-header allowlist, so DNS rebinding is possible. Only the 127.0.0.1 bind protects the API | Add a trusted-host allowlist before authentication (S1) or any real data |
+| B6 | Low | `backend/README.md`, `backend/pyproject.toml` | The documented install command ignores the version bounds, and there is no lock file | Install from the project metadata and commit a lock file, once the owner approves a tool |
+| F1 | Low | `frontend/mock-api/server.mjs` (request URL parsing) | A malformed request target may crash the mock (the reviewer rated this probable and did not run it). Dev-only | Move the URL parsing inside the `try` block when the mock is next touched |
+| F2 | Low | `frontend/next.config.ts` | The CSP contains only `frame-ancestors 'none'` | Add `base-uri`, `form-action`, `object-src` and `connect-src` for production builds, and a nonce-based `script-src` with the Caddy task. Rated Medium once authentication or real data exists |
+| F3 | Low | `frontend/mock-api/server.mjs`, `next start` | No Host-header check on the mock or on `next start` | Add an allowlist before real data or authentication. The mock is dev-only |
+
+Info items for tracking (no action required now):
+
+- Log lines include the decoded request path (log-injection risk if more routes are added).
+- No `nosniff` header and no connection limits on the backend. Revisit when Caddy fronts the app.
+- No tests for B1 to B4.
+- IDs are sequential and guessable, so any future read route needs object-level checks.
+- `lib/i18n/localize.ts` uses `in` where `Object.hasOwn` is safer.
+- The client does not check that the 201 body matches what was submitted.
+- Server-provided strings are not length-bounded on the client.
+- The "draft only" wording test does not scan the dictionaries in `lib/i18n/`.
+- `MOCK_SLOW_MS` has no upper bound.
+- Confirm that `jest-axe` was recorded as an approved dependency with reason, licence and maintenance status. The `vite` devDependency looks unnecessary.
+- No dependency advisory check (`npm audit`, `pip-audit`) has been run.
