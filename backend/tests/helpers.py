@@ -16,6 +16,12 @@ CONTRACT_DIR = BACKEND_DIR.parent / "contracts" / "purchase-request-v1"
 EXAMPLES_DIR = CONTRACT_DIR / "examples"
 SCHEMAS_DIR = CONTRACT_DIR / "schemas"
 
+# Contract v1.1 (additive draft): the same files plus the storage_mode value "postgres".
+# Like v1, it is only ever read here, never edited.
+CONTRACT_V11_DIR = BACKEND_DIR.parent / "contracts" / "purchase-request-v1.1"
+EXAMPLES_V11_DIR = CONTRACT_V11_DIR / "examples"
+SCHEMAS_V11_DIR = CONTRACT_V11_DIR / "schemas"
+
 JSON_HEADERS = {"content-type": "application/json"}
 FIXED_NOW = datetime(2026, 11, 8, 10, 15, 30, tzinfo=UTC)
 
@@ -30,6 +36,12 @@ def example(name: str) -> Any:
 
 def validator(schema_file: str) -> Draft202012Validator:
     schema = load_json(SCHEMAS_DIR / schema_file)
+    Draft202012Validator.check_schema(schema)
+    return Draft202012Validator(schema)
+
+
+def validator_v11(schema_file: str) -> Draft202012Validator:
+    schema = load_json(SCHEMAS_V11_DIR / schema_file)
     Draft202012Validator.check_schema(schema)
     return Draft202012Validator(schema)
 

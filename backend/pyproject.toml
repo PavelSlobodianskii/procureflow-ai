@@ -23,6 +23,11 @@ dev = [
     "ruff>=0.17,<0.18",
 ]
 
+# Where Vercel finds the app (read only when the owner deploys). index.py keeps writes closed
+# unless the owner opens them; see its docstring. Local runs use "uvicorn app.main:app".
+[tool.vercel]
+entrypoint = "index:app"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

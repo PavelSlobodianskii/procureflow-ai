@@ -7,7 +7,9 @@ from dataclasses import dataclass
 
 SERVICE_NAME = "procureflow-api"
 SERVICE_VERSION = "0.1.0"
-STORAGE_MODE = "in_memory_dev"
+STORAGE_MODE = "in_memory_dev"  # the default, and the only value contract v1 knows
+# Contract v1.1 (contracts/purchase-request-v1.1/) adds "postgres". Nothing else is ever valid.
+STORAGE_MODES = ("in_memory_dev", "postgres")
 
 
 @dataclass(frozen=True)
