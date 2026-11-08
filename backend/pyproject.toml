@@ -1,0 +1,36 @@
+[project]
+name = "procureflow-api"
+version = "0.1.0"
+description = "ProcureFlow AI backend: purchase request slice (task 0001). DEV ONLY in-memory storage."
+requires-python = ">=3.12"
+# Floors are the versions this slice was built and tested with (2026-11-08). Upper bounds stop
+# an unreviewed major (or, for ruff, minor) release from changing behaviour or lint rules.
+# pydantic is imported directly by the app, so it is listed here and not left to fastapi.
+dependencies = [
+    "fastapi>=0.162,<1",
+    "pydantic>=2.14,<3",
+    "uvicorn>=0.54,<1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2,<10",
+    "httpx>=0.28,<1",
+    "jsonschema>=4.26,<5",
+    "ruff>=0.17,<0.18",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "ASYNC"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
