@@ -46,8 +46,13 @@ def new_drafted_event(event_id: str, request_id: str, now: datetime) -> OutboxEv
 class OutboxPort(Protocol):
     """What the dispatcher needs from an event store."""
 
-    def claim_due(self, now: datetime, limit: int) -> list[OutboxEvent]:
-        """Pending events whose ``next_attempt_at`` is not after ``now``."""
+    def list_due(self, now: datetime, limit: int) -> list[OutboxEvent]:
+        """Pending events whose ``next_attempt_at`` is not after ``now``. Read-only.
+
+        This does NOT reserve the events: it is safe only with exactly ONE dispatcher. Two
+        dispatchers would handle the same event twice. A database version needs a real claim
+        (for example ``SELECT ... FOR UPDATE SKIP LOCKED``) before it may run more than one.
+        """
         ...
 
     def mark_dispatched(self, event_id: str, attempts: int) -> None: ...

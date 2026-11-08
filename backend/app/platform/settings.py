@@ -19,6 +19,3 @@ class Settings:
     backoff_cap_seconds: float = 30.0
     max_attempts: int = 5
     dispatcher_poll_seconds: float = 0.25
-    # Not secrets: the address the dev server is documented to bind to.
-    host: str = "127.0.0.1"
-    port: int = 8000

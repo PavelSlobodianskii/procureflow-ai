@@ -22,6 +22,25 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install fastapi uvicorn --group dev
 ```
 
+## Dependencies (approved by the owner for task 0001)
+
+All are open source and were the latest releases when installed on 2026-11-08. Licences are
+taken from the installed package metadata. There is no lock file yet: `pyproject.toml` pins a
+tested floor and an upper bound for each.
+
+| Package | Why it is needed | Licence |
+|---|---|---|
+| `fastapi` | The API framework in the approved stack | MIT |
+| `pydantic` | Strict request validation and typed response models (also required by FastAPI) | MIT |
+| `uvicorn` | Runs the server locally (plain install, without the `[standard]` extras) | BSD-3-Clause |
+| `pytest` (dev) | Test runner | MIT |
+| `httpx` (dev) | Needed by FastAPI's in-process test client. It makes no real network calls | BSD-3-Clause |
+| `jsonschema` (dev) | Checks responses against the frozen contract schemas | MIT |
+| `ruff` (dev) | Linter and formatter | MIT |
+
+Known note: Starlette's test client now prints a deprecation warning that prefers a package
+called `httpx2`. It is not approved, so the tests keep using `httpx`.
+
 ## Run
 
 ```powershell

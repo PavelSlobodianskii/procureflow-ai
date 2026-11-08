@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.modules.requests import domain
 from app.modules.requests.dispatcher import Dispatcher, log_event_handler
 from app.modules.requests.domain import Draft, PurchaseRequestData, RequestIdGenerator
 from app.modules.requests.events import (
@@ -22,7 +23,7 @@ from app.modules.requests.events import (
     backoff_delay,
     new_drafted_event,
 )
-from app.modules.requests.repository import RequestRepository
+from app.modules.requests.repository import OutboxRepository, RequestRepository
 from app.modules.requests.repository_memory import InMemoryRequestRepository
 from app.modules.requests.service import RequestService
 from app.platform.settings import Settings
@@ -261,3 +262,77 @@ def test_background_dispatcher_runs_inside_the_app_lifespan() -> None:
             time.sleep(0.02)
     assert event_of(repo).status is EventStatus.DISPATCHED
     assert handled == [request_id]
+
+
+# ---- retry timing precision (review finding 2) ---------------------------------------------
+
+
+def test_dispatcher_default_clock_has_sub_second_precision() -> None:
+    # created_at stays in whole seconds, but retry scheduling must not.
+    default_clock = inspect.signature(Dispatcher.__init__).parameters["clock"].default
+    assert default_clock is domain.utc_now
+    assert domain.utc_now_seconds().microsecond == 0
+
+
+def test_retry_keeps_sub_second_delays(clock: FakeClock) -> None:
+    clock.now = FIXED_NOW + timedelta(microseconds=123_456)
+    repo = InMemoryRequestRepository()
+    seed_event(repo, clock)
+
+    async def always_fails(event: OutboxEvent) -> None:
+        raise RuntimeError("boom")
+
+    dispatcher = Dispatcher(repo, always_fails, clock=clock, rand=lambda: 0.5)  # delay 0.25 s
+    assert run(dispatcher.run_once()) == 1
+    assert event_of(repo).next_attempt_at == clock.now + timedelta(seconds=0.25)
+
+    clock.advance(0.24)  # still 10 ms early: not due
+    assert run(dispatcher.run_once()) == 0
+    clock.advance(0.01)  # exactly due, with no wait for a whole second
+    assert run(dispatcher.run_once()) == 1
+
+
+def test_retry_time_uses_the_clock_after_each_slow_handler(clock: FakeClock) -> None:
+    repo = InMemoryRequestRepository()
+    service = RequestService(repo, RequestIdGenerator(), clock)
+    first = service.create_draft(make_data())
+    second = service.create_draft(make_data())
+    start = clock.now
+
+    async def slow_and_failing(event: OutboxEvent) -> None:
+        clock.advance(2)  # each call "takes" 2 seconds
+        raise RuntimeError("boom")
+
+    dispatcher = Dispatcher(repo, slow_and_failing, clock=clock, rand=lambda: 0.5)
+    assert run(dispatcher.run_once()) == 2
+
+    by_request = {e.payload["request_id"]: e for e in repo.events()}
+    # A time read once before the batch would give start + 0.25 s for both events.
+    assert by_request[first.id].next_attempt_at == start + timedelta(seconds=2.25)
+    assert by_request[second.id].next_attempt_at == start + timedelta(seconds=4.25)
+
+
+# ---- interfaces (review findings 3 and 4) --------------------------------------------------
+
+
+def test_outbox_listing_is_read_only_and_not_called_claim() -> None:
+    assert hasattr(InMemoryRequestRepository, "list_due")
+    assert not hasattr(InMemoryRequestRepository, "claim_due")
+    # The single-consumer limit is documented on the interface the dispatcher depends on.
+    assert "ONE dispatcher" in (inspect.getdoc(OutboxRepository.list_due) or "")
+
+
+def test_list_due_does_not_change_events(clock: FakeClock) -> None:
+    repo = InMemoryRequestRepository()
+    seed_event(repo, clock)
+    before = repo.events()
+    assert len(repo.list_due(clock.now, 50)) == 1
+    assert len(repo.list_due(clock.now, 50)) == 1  # still there: listing reserves nothing
+    assert repo.events() == before
+
+
+def test_in_memory_repository_provides_the_full_outbox_interface() -> None:
+    needed = {"add", "list_due", "mark_dispatched", "mark_retry", "mark_failed"}
+    assert needed <= set(dir(InMemoryRequestRepository))
+    # RequestRepository itself still has exactly one write method.
+    assert {n for n in dir(RequestRepository) if not n.startswith("_")} == {"add"}

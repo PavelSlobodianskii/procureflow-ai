@@ -33,7 +33,8 @@ class InMemoryRequestRepository:
 
     # ---- OutboxPort --------------------------------------------------------------------------
 
-    def claim_due(self, now: datetime, limit: int) -> list[OutboxEvent]:
+    def list_due(self, now: datetime, limit: int) -> list[OutboxEvent]:
+        # Read-only listing, not a claim: correct only with a single in-process dispatcher.
         with self._lock:
             due = [
                 event

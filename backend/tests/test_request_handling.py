@@ -139,3 +139,48 @@ def test_json_scalar_bodies_are_422_not_400(client: TestClient) -> None:
         response = post_json(client, body)
         assert response.status_code == 422
         assert response.json()["errors"][0]["field"] == "$"
+
+
+# ---- text that cannot be encoded as UTF-8 (lone UTF-16 surrogates) --------------------------
+
+
+# Lone surrogates are built with chr() so that no literal surrogate sits in this source file
+# (pytest cannot compile one). json.dumps then writes each as a JSON escape such as "\\ud800".
+HIGH = chr(0xD800)
+LOW = chr(0xDFFF)
+
+
+def _with_surrogate(**changes):
+    return valid_body() | changes
+
+
+SURROGATE_BODIES = {
+    "description": _with_surrogate(description=HIGH * 3),
+    "currency": _with_surrogate(currency=HIGH),
+    "unit_price": _with_surrogate(unit_price="1." + LOW),
+    "requester_display_name": _with_surrogate(requester_display_name="A" + LOW),
+    "unknown-field-name": _with_surrogate(**{HIGH: 1}),
+    "nested-value": _with_surrogate(description=[LOW]),
+    "top-level-array": [LOW],
+}
+
+
+@pytest.mark.parametrize("name", SURROGATE_BODIES)
+def test_lone_surrogate_text_is_a_400_and_stores_nothing(
+    client: TestClient, repo, name: str
+) -> None:
+    response = client.post(URL, content=json.dumps(SURROGATE_BODIES[name]), headers=JSON_HEADERS)
+    assert response.status_code == 400
+    assert problem_status(response) == 400
+    assert repo.drafts() == []
+    assert repo.events() == []
+
+
+def test_valid_surrogate_pair_is_accepted_and_echoed(client: TestClient) -> None:
+    # An emoji is written in JSON as a valid surrogate PAIR (two escapes): that must be fine.
+    text = "\U0001f600\U0001f600\U0001f600"
+    response = client.post(
+        URL, content=json.dumps(valid_body() | {"description": text}), headers=JSON_HEADERS
+    )
+    assert response.status_code == 201
+    assert response.json()["data"]["description"] == text

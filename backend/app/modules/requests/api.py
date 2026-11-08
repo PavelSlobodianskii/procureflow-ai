@@ -56,13 +56,35 @@ async def _read_body_limited(request: Request, max_bytes: int) -> bytes:
     return b"".join(chunks)
 
 
+def _require_encodable_text(value: object) -> None:
+    """Raise ``UnicodeEncodeError`` if any string or key cannot be written out as UTF-8.
+
+    JSON allows an escape such as ``"\\ud800"`` (half of a UTF-16 pair). Python turns it into a
+    string that cannot be encoded, which would later break validation messages and the response.
+    An explicit loop (not recursion) keeps this safe for deeply nested bodies.
+    """
+    pending = [value]
+    while pending:
+        item = pending.pop()
+        if isinstance(item, str):
+            item.encode("utf-8")
+        elif isinstance(item, dict):
+            pending.extend(item.keys())
+            pending.extend(item.values())
+        elif isinstance(item, list):
+            pending.extend(item)
+
+
 def _parse_json(raw: bytes) -> object:
     try:
-        return json.loads(raw.decode("utf-8"), parse_constant=_reject_json_constant)
+        parsed = json.loads(raw.decode("utf-8"), parse_constant=_reject_json_constant)
+        _require_encodable_text(parsed)
     except (ValueError, RecursionError):
-        # ValueError covers bad syntax, bad UTF-8, NaN/Infinity and over-long integer literals.
+        # ValueError covers bad syntax, bad UTF-8, NaN/Infinity, over-long integer literals and
+        # text that cannot be encoded as UTF-8 (UnicodeEncodeError is a ValueError).
         # RecursionError covers absurdly deep nesting that still fits inside the size limit.
         raise ProblemError(400) from None
+    return parsed
 
 
 @router.get("/health", response_model=HealthResponse)

@@ -35,7 +35,9 @@ class Dispatcher:
         handler: EventHandler = log_event_handler,
         *,
         settings: Settings | None = None,
-        clock: Callable[[], datetime] = domain.utc_now_seconds,
+        # Full precision on purpose: a whole-second clock would round a 0.25 s retry delay up
+        # to the next second and defeat the sub-second jitter.
+        clock: Callable[[], datetime] = domain.utc_now,
         rand: Callable[[], float] = random.random,
     ) -> None:
         self._outbox = outbox
@@ -46,13 +48,12 @@ class Dispatcher:
 
     async def run_once(self) -> int:
         """Process every event that is due now. Returns how many were attempted."""
-        now = self._clock()
-        due = self._outbox.claim_due(now, _BATCH_SIZE)
+        due = self._outbox.list_due(self._clock(), _BATCH_SIZE)
         for event in due:
-            await self._attempt(event, now)
+            await self._attempt(event)
         return len(due)
 
-    async def _attempt(self, event: OutboxEvent, now: datetime) -> None:
+    async def _attempt(self, event: OutboxEvent) -> None:
         attempts = event.attempts + 1
         try:
             await asyncio.wait_for(
@@ -74,7 +75,10 @@ class Dispatcher:
                 factor=self._settings.backoff_factor,
                 cap=self._settings.backoff_cap_seconds,
             )
-            self._outbox.mark_retry(event.event_id, attempts, now + timedelta(seconds=delay))
+            # Read the clock again: earlier events in this batch may have taken up to 2 s each,
+            # so a time read before the batch started would be stale.
+            retry_at = self._clock() + timedelta(seconds=delay)
+            self._outbox.mark_retry(event.event_id, attempts, retry_at)
             logger.warning(
                 "outbox event attempt failed: event_id=%s attempts=%d retry_in=%.2fs",
                 event.event_id,

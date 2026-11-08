@@ -61,8 +61,14 @@ def format_money(amount: Decimal) -> str:
     return format(amount, "f")
 
 
+def utc_now() -> datetime:
+    """Current UTC time with full sub-second precision. Used to schedule retries."""
+    return datetime.now(UTC)
+
+
 def utc_now_seconds() -> datetime:
-    return datetime.now(UTC).replace(microsecond=0)
+    """Current UTC time in whole seconds. Used for ``created_at`` only."""
+    return utc_now().replace(microsecond=0)
 
 
 def format_timestamp(moment: datetime) -> str:

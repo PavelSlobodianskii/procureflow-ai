@@ -7,6 +7,9 @@ import json
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.modules.requests.repository_memory import (
+    InMemoryRequestRepository as InMemoryRepository,
+)
 from tests.helpers import (
     CONTRACT_DIR,
     JSON_HEADERS,
@@ -97,7 +100,7 @@ def test_422_not_an_object_matches_example(client: TestClient) -> None:
 
 
 def test_500_internal_error(clock: FakeClock) -> None:
-    class ExplodingRepository:
+    class ExplodingRepository(InMemoryRepository):  # a full OutboxRepository whose add() fails
         def add(self, draft: object, event: object) -> None:
             raise RuntimeError("secret internals C:\\Users\\someone\\x.py SELECT * FROM t")
 

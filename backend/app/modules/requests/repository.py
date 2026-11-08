@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from app.modules.requests.domain import Draft
-from app.modules.requests.events import OutboxEvent
+from app.modules.requests.events import OutboxEvent, OutboxPort
 
 
 class RequestRepository(Protocol):
@@ -15,3 +15,11 @@ class RequestRepository(Protocol):
         In a real database this is one transaction. It is the only write method.
         """
         ...
+
+
+class OutboxRepository(RequestRepository, OutboxPort, Protocol):
+    """A store that can both take new drafts and feed the in-process dispatcher.
+
+    The app needs this combination. It is kept separate from ``RequestRepository`` so that
+    interface stays at exactly one write method (``add``).
+    """

@@ -24,7 +24,7 @@ from app.modules.requests import domain
 from app.modules.requests.api import router
 from app.modules.requests.dispatcher import Dispatcher, EventHandler, log_event_handler
 from app.modules.requests.domain import RequestIdGenerator
-from app.modules.requests.repository import RequestRepository
+from app.modules.requests.repository import OutboxRepository
 from app.modules.requests.repository_memory import InMemoryRequestRepository
 from app.modules.requests.service import RequestService
 from app.platform.problems import register_problem_handlers
@@ -36,8 +36,9 @@ logger = logging.getLogger("procureflow.api")
 def create_app(
     *,
     settings: Settings | None = None,
-    repository: RequestRepository | None = None,
-    clock: Callable[[], datetime] = domain.utc_now_seconds,
+    repository: OutboxRepository | None = None,
+    clock: Callable[[], datetime] = domain.utc_now_seconds,  # created_at and event times
+    dispatcher_clock: Callable[[], datetime] = domain.utc_now,  # full precision for retries
     handler: EventHandler = log_event_handler,
     rand: Callable[[], float] = random.random,
     start_dispatcher: bool = True,
@@ -53,8 +54,10 @@ def create_app(
             "They are NOT durable and are lost when this process stops."
         )
         task: asyncio.Task[None] | None = None
-        if start_dispatcher and hasattr(repo, "claim_due"):
-            dispatcher = Dispatcher(repo, handler, settings=settings, clock=clock, rand=rand)  # type: ignore[arg-type]
+        if start_dispatcher:
+            dispatcher = Dispatcher(
+                repo, handler, settings=settings, clock=dispatcher_clock, rand=rand
+            )
             task = asyncio.create_task(dispatcher.run_forever())
         try:
             yield
