@@ -1,0 +1,7 @@
+{
+  "type": "urn:procureflow:problem:payload-too-large",
+  "title": "Payload too large",
+  "status": 413,
+  "detail": "The request body must not exceed 16384 bytes.",
+  "instance": "/api/v1/requests"
+}

@@ -1,0 +1,6 @@
+{
+  "status": "ok",
+  "service": "procureflow-api",
+  "version": "0.1.0",
+  "storage_mode": "in_memory_dev"
+}

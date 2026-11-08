@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:procureflow:contract:purchase-request-v1:create-request",
+  "title": "CreatePurchaseRequest",
+  "description": "Body of POST /api/v1/requests. Unknown fields are rejected. String lengths for description and requester_display_name are measured AFTER trimming leading and trailing whitespace (JSON Schema cannot express this, so the servers and tests enforce it). The numeric range of unit_price (greater than 0, at most 10000000.00) is also enforced by code, not by this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["description", "quantity", "unit_price", "currency", "requester_display_name"],
+  "properties": {
+    "description": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 500,
+      "description": "Item or service description (synthetic text)."
+    },
+    "quantity": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000,
+      "description": "Whole number of units. Must be a JSON integer, not a string, boolean or number with a fractional part."
+    },
+    "unit_price": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]{1,2})?$",
+      "description": "Estimated unit price as a decimal STRING with at most 2 decimal places, so money never passes through a floating-point number. Code enforces: value greater than 0 and at most 10000000.00."
+    },
+    "currency": {
+      "type": "string",
+      "enum": ["EUR", "USD", "GBP", "CHF"],
+      "description": "Uppercase and case-sensitive. No conversion and no FX lookup happens in this slice."
+    },
+    "requester_display_name": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 80,
+      "description": "Synthetic display name only. This is a label, not an identity."
+    }
+  }
+}
