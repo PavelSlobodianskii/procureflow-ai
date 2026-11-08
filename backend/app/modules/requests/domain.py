@@ -11,7 +11,7 @@ import threading
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Final, Literal
+from typing import Final, Literal, Protocol
 
 CURRENCIES: Final = ("EUR", "USD", "GBP", "CHF")
 DRAFT_STATUS: Final = "draft"
@@ -75,6 +75,17 @@ def format_timestamp(moment: datetime) -> str:
     return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def format_request_id(moment: datetime, sequence: int) -> str:
+    """The one place that spells a request ID: ``PR-<year>-<6 digits>``."""
+    return f"PR-{moment.year:04d}-{sequence:06d}"
+
+
+class RequestIdSource(Protocol):
+    """Anything that can hand out the next request ID (``PR-<year>-<6 digits>``)."""
+
+    def next_id(self, moment: datetime) -> str: ...
+
+
 class RequestIdGenerator:
     """Per-process counter producing ``PR-<year>-<6 digits>``. Resets on restart."""
 
@@ -88,4 +99,4 @@ class RequestIdGenerator:
             if sequence > _MAX_SEQUENCE:
                 raise OverflowError("request id sequence exhausted")
             self._next += 1
-        return f"PR-{moment.year:04d}-{sequence:06d}"
+        return format_request_id(moment, sequence)

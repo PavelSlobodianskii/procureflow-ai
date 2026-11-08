@@ -9,6 +9,9 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.162,<1",
     "pydantic>=2.14,<3",
+    # PostgreSQL driver (task 0002, phase 3). LGPL-3.0-only, used unmodified. The [binary] extra
+    # ships its own libpq, so no system PostgreSQL client or build tools are needed.
+    "psycopg[binary]>=3.3,<4",
     "uvicorn>=0.54,<1",
 ]
 
