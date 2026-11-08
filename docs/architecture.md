@@ -640,7 +640,7 @@ GitHub Actions (public repository, so free) runs lint, type checks, unit tests (
 
 ## 15. Architecture decisions (AD-1 to AD-16)
 
-**Status legend:** every decision below is **Proposed — pending approval**. None has been explicitly approved by the project owner. The only approved decisions are the baseline decisions in Section 0 (the 12 original ones and B-1 to B-4). The project owner should mark each AD as *Approved*, *Changed* or *Discuss*, and this document should then be updated. Revised decisions are detailed in Section 15.1.
+**Status legend:** every decision below is **Proposed — pending approval**. None has been explicitly approved by the project owner. The only approved decisions are the baseline decisions in Section 0 (the 12 original ones and B-1 to B-6). The project owner should mark each AD as *Approved*, *Changed* or *Discuss*, and this document should then be updated. Revised decisions are detailed in Section 15.1.
 
 | # | Decision | Recommendation | Alternative(s) | Rationale and trade-offs | Status |
 |---|---|---|---|---|---|
