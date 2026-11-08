@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:procureflow:contract:purchase-request-v1.1:health-response",
+  "title": "HealthResponse",
+  "description": "200 response of GET /health. Reports only that the process is up, never any business data.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "service", "version", "storage_mode"],
+  "properties": {
+    "status": { "const": "ok" },
+    "service": { "const": "procureflow-api" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "storage_mode": { "enum": ["in_memory_dev", "postgres"] }
+  }
+}

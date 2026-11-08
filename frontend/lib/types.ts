@@ -1,10 +1,17 @@
 /**
  * Types for API contract purchase-request-v1 (FROZEN). Source of truth: contracts/purchase-request-v1/.
  * Do not add fields here that the contract does not have.
+ *
+ * One value is read from the additive revision contracts/purchase-request-v1.1/: storage_mode may also
+ * be "postgres". This client accepts both, so it works with a v1 server and with a v1.1 server.
  */
 
 export const CURRENCIES = ["EUR", "USD", "GBP", "CHF"] as const;
 export type Currency = (typeof CURRENCIES)[number];
+
+/** Where a draft is kept. v1 knows only "in_memory_dev". v1.1 adds "postgres". Nothing else is valid. */
+export const STORAGE_MODES = ["in_memory_dev", "postgres"] as const;
+export type StorageMode = (typeof STORAGE_MODES)[number];
 
 /** Request field names, in the order the contract reports errors. */
 export const FIELD_NAMES = [
@@ -82,7 +89,7 @@ export interface PurchaseRequestDraft {
   id: string;
   status: "draft";
   created_at: string;
-  storage_mode: "in_memory_dev";
+  storage_mode: StorageMode;
   data: CreatePurchaseRequest;
   estimated_total: MoneyAmount;
 }

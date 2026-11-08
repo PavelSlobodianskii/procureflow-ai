@@ -1,0 +1,79 @@
+{
+  "contract": "purchase-request-v1",
+  "how_to_use": "Each case is built from create-request.valid.json: first delete every key listed in 'remove', then apply every key in 'override'. If a case has 'body', use that literal JSON value instead. Accepted cases must return 201. Rejected cases must return 422 with exactly the listed field and code pairs, in the listed order, with the messages from messages.json. Length boundaries of 500 and 80 characters are generated in test code, because the files only hold short literals. Literals such as 2.0 or 1e2 for quantity are deliberately NOT tested, since JavaScript cannot tell them from integers.",
+  "accepted": [
+    { "name": "minimum-boundaries", "override": { "description": "abc", "quantity": 1, "unit_price": "0.01", "requester_display_name": "Al" }, "expect": { "unit_price": "0.01", "estimated_total_amount": "0.01" } },
+    { "name": "maximum-boundaries", "override": { "quantity": 100000, "unit_price": "10000000.00" }, "expect": { "unit_price": "10000000.00", "estimated_total_amount": "1000000000000.00" } },
+    { "name": "whitespace-is-trimmed", "override": { "description": "  Synthetic chairs  ", "requester_display_name": "  Alex Example " }, "expect": { "description": "Synthetic chairs", "requester_display_name": "Alex Example" } },
+    { "name": "price-without-decimals-is-normalised", "override": { "unit_price": "250" }, "expect": { "unit_price": "250.00", "estimated_total_amount": "2500.00" } },
+    { "name": "price-with-one-decimal-is-normalised", "override": { "unit_price": "249.9" }, "expect": { "unit_price": "249.90", "estimated_total_amount": "2499.00" } },
+    { "name": "currency-usd", "override": { "currency": "USD" }, "expect": { "estimated_total_currency": "USD" } },
+    { "name": "currency-gbp", "override": { "currency": "GBP" }, "expect": { "estimated_total_currency": "GBP" } },
+    { "name": "currency-chf", "override": { "currency": "CHF" }, "expect": { "estimated_total_currency": "CHF" } }
+  ],
+  "rejected": [
+    { "name": "empty-object", "body": {}, "expected_errors": [
+      { "field": "description", "code": "required" },
+      { "field": "quantity", "code": "required" },
+      { "field": "unit_price", "code": "required" },
+      { "field": "currency", "code": "required" },
+      { "field": "requester_display_name", "code": "required" } ] },
+    { "name": "body-is-array", "body": [], "expected_errors": [ { "field": "$", "code": "invalid_type" } ] },
+    { "name": "body-is-string", "body": "text", "expected_errors": [ { "field": "$", "code": "invalid_type" } ] },
+    { "name": "body-is-null", "body": null, "expected_errors": [ { "field": "$", "code": "invalid_type" } ] },
+
+    { "name": "description-missing", "remove": ["description"], "expected_errors": [ { "field": "description", "code": "required" } ] },
+    { "name": "description-null", "override": { "description": null }, "expected_errors": [ { "field": "description", "code": "invalid_type" } ] },
+    { "name": "description-number", "override": { "description": 123 }, "expected_errors": [ { "field": "description", "code": "invalid_type" } ] },
+    { "name": "description-too-short", "override": { "description": "ab" }, "expected_errors": [ { "field": "description", "code": "too_short" } ] },
+    { "name": "description-too-short-after-trim", "override": { "description": "  ab  " }, "expected_errors": [ { "field": "description", "code": "too_short" } ] },
+    { "name": "description-blank", "override": { "description": "     " }, "expected_errors": [ { "field": "description", "code": "too_short" } ] },
+
+    { "name": "quantity-missing", "remove": ["quantity"], "expected_errors": [ { "field": "quantity", "code": "required" } ] },
+    { "name": "quantity-null", "override": { "quantity": null }, "expected_errors": [ { "field": "quantity", "code": "invalid_type" } ] },
+    { "name": "quantity-string", "override": { "quantity": "10" }, "expected_errors": [ { "field": "quantity", "code": "invalid_type" } ] },
+    { "name": "quantity-boolean", "override": { "quantity": true }, "expected_errors": [ { "field": "quantity", "code": "invalid_type" } ] },
+    { "name": "quantity-fractional", "override": { "quantity": 1.5 }, "expected_errors": [ { "field": "quantity", "code": "invalid_type" } ] },
+    { "name": "quantity-zero", "override": { "quantity": 0 }, "expected_errors": [ { "field": "quantity", "code": "out_of_range" } ] },
+    { "name": "quantity-negative", "override": { "quantity": -1 }, "expected_errors": [ { "field": "quantity", "code": "out_of_range" } ] },
+    { "name": "quantity-over-maximum", "override": { "quantity": 100001 }, "expected_errors": [ { "field": "quantity", "code": "out_of_range" } ] },
+
+    { "name": "unit-price-missing", "remove": ["unit_price"], "expected_errors": [ { "field": "unit_price", "code": "required" } ] },
+    { "name": "unit-price-null", "override": { "unit_price": null }, "expected_errors": [ { "field": "unit_price", "code": "invalid_type" } ] },
+    { "name": "unit-price-is-a-number", "override": { "unit_price": 249.9 }, "expected_errors": [ { "field": "unit_price", "code": "invalid_type" } ] },
+    { "name": "unit-price-three-decimals", "override": { "unit_price": "12.345" }, "expected_errors": [ { "field": "unit_price", "code": "invalid_format" } ] },
+    { "name": "unit-price-text", "override": { "unit_price": "abc" }, "expected_errors": [ { "field": "unit_price", "code": "invalid_format" } ] },
+    { "name": "unit-price-empty", "override": { "unit_price": "" }, "expected_errors": [ { "field": "unit_price", "code": "invalid_format" } ] },
+    { "name": "unit-price-negative", "override": { "unit_price": "-5" }, "expected_errors": [ { "field": "unit_price", "code": "invalid_format" } ] },
+    { "name": "unit-price-comma", "override": { "unit_price": "1,50" }, "expected_errors": [ { "field": "unit_price", "code": "invalid_format" } ] },
+    { "name": "unit-price-leading-zero", "override": { "unit_price": "01.50" }, "expected_errors": [ { "field": "unit_price", "code": "invalid_format" } ] },
+    { "name": "unit-price-zero", "override": { "unit_price": "0" }, "expected_errors": [ { "field": "unit_price", "code": "out_of_range" } ] },
+    { "name": "unit-price-zero-with-decimals", "override": { "unit_price": "0.00" }, "expected_errors": [ { "field": "unit_price", "code": "out_of_range" } ] },
+    { "name": "unit-price-over-maximum", "override": { "unit_price": "10000000.01" }, "expected_errors": [ { "field": "unit_price", "code": "out_of_range" } ] },
+    { "name": "unit-price-huge", "override": { "unit_price": "99999999999999999999" }, "expected_errors": [ { "field": "unit_price", "code": "out_of_range" } ] },
+
+    { "name": "currency-missing", "remove": ["currency"], "expected_errors": [ { "field": "currency", "code": "required" } ] },
+    { "name": "currency-number", "override": { "currency": 5 }, "expected_errors": [ { "field": "currency", "code": "invalid_type" } ] },
+    { "name": "currency-lowercase", "override": { "currency": "eur" }, "expected_errors": [ { "field": "currency", "code": "invalid_choice" } ] },
+    { "name": "currency-unsupported", "override": { "currency": "JPY" }, "expected_errors": [ { "field": "currency", "code": "invalid_choice" } ] },
+    { "name": "currency-empty", "override": { "currency": "" }, "expected_errors": [ { "field": "currency", "code": "invalid_choice" } ] },
+
+    { "name": "requester-missing", "remove": ["requester_display_name"], "expected_errors": [ { "field": "requester_display_name", "code": "required" } ] },
+    { "name": "requester-number", "override": { "requester_display_name": 7 }, "expected_errors": [ { "field": "requester_display_name", "code": "invalid_type" } ] },
+    { "name": "requester-too-short", "override": { "requester_display_name": "A" }, "expected_errors": [ { "field": "requester_display_name", "code": "too_short" } ] },
+    { "name": "requester-blank", "override": { "requester_display_name": "   " }, "expected_errors": [ { "field": "requester_display_name", "code": "too_short" } ] },
+
+    { "name": "unknown-field-status-cannot-be-injected", "override": { "status": "approved" }, "expected_errors": [ { "field": "status", "code": "unknown_field" } ] },
+    { "name": "unknown-field-id-cannot-be-injected", "override": { "id": "PR-2026-999999" }, "expected_errors": [ { "field": "id", "code": "unknown_field" } ] },
+    { "name": "unknown-fields-in-order-of-appearance", "override": { "approved": true, "po_number": "PO-1" }, "expected_errors": [
+      { "field": "approved", "code": "unknown_field" },
+      { "field": "po_number", "code": "unknown_field" } ] },
+
+    { "name": "all-fields-invalid-matches-422-example", "body": { "description": "ab", "quantity": 0, "unit_price": "12.345", "currency": "eur", "requester_display_name": "A" }, "expected_errors": [
+      { "field": "description", "code": "too_short" },
+      { "field": "quantity", "code": "out_of_range" },
+      { "field": "unit_price", "code": "invalid_format" },
+      { "field": "currency", "code": "invalid_choice" },
+      { "field": "requester_display_name", "code": "too_short" } ] }
+  ]
+}

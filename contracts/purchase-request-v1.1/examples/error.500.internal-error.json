@@ -1,0 +1,7 @@
+{
+  "type": "urn:procureflow:problem:internal-error",
+  "title": "Internal error",
+  "status": 500,
+  "detail": "An unexpected error occurred.",
+  "instance": "/api/v1/requests"
+}

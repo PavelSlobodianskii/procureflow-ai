@@ -6,7 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { RequestForm } from "@/app/requests/new/request-form";
 import NewRequestPage from "@/app/requests/new/page";
-import { created, fillValid, problem, stubFetch, submitButton } from "./helpers/form";
+import { created, createdPostgres, fillValid, problem, stubFetch, submitButton } from "./helpers/form";
 
 const ROOT = process.cwd();
 
@@ -102,6 +102,14 @@ describe("UI wording: draft only", () => {
       },
       async () => {
         stubFetch(async () => created());
+        const user = userEvent.setup({ delay: null });
+        await fillValid(user);
+        await user.click(submitButton());
+        await screen.findByRole("heading", { name: "Draft saved" });
+      },
+      async () => {
+        // The same success state when a contract v1.1 server says the draft is stored in PostgreSQL.
+        stubFetch(async () => createdPostgres());
         const user = userEvent.setup({ delay: null });
         await fillValid(user);
         await user.click(submitButton());

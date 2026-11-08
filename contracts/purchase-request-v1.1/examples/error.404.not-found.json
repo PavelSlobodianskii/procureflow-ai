@@ -1,0 +1,7 @@
+{
+  "type": "urn:procureflow:problem:not-found",
+  "title": "Not found",
+  "status": 404,
+  "detail": "No such route.",
+  "instance": "/api/v1/unknown"
+}

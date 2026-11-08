@@ -1,0 +1,10 @@
+{
+  "type": "urn:procureflow:problem:validation-error",
+  "title": "Validation failed",
+  "status": 422,
+  "detail": "One or more fields are invalid.",
+  "instance": "/api/v1/requests",
+  "errors": [
+    { "field": "$", "code": "invalid_type", "message": "Request body must be a JSON object." }
+  ]
+}

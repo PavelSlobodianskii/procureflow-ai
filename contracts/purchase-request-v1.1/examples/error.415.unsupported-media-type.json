@@ -1,0 +1,7 @@
+{
+  "type": "urn:procureflow:problem:unsupported-media-type",
+  "title": "Unsupported media type",
+  "status": 415,
+  "detail": "Content-Type must be application/json.",
+  "instance": "/api/v1/requests"
+}

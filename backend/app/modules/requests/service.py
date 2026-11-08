@@ -7,7 +7,7 @@ from collections.abc import Callable
 from datetime import datetime
 
 from app.modules.requests import domain
-from app.modules.requests.domain import Draft, PurchaseRequestData, RequestIdGenerator
+from app.modules.requests.domain import Draft, PurchaseRequestData, RequestIdSource
 from app.modules.requests.events import new_drafted_event
 from app.modules.requests.repository import RequestRepository
 
@@ -20,7 +20,7 @@ class RequestService:
     def __init__(
         self,
         repository: RequestRepository,
-        ids: RequestIdGenerator,
+        ids: RequestIdSource,
         clock: Callable[[], datetime] = domain.utc_now_seconds,
         event_id_factory: Callable[[], str] = _new_event_id,
     ) -> None:

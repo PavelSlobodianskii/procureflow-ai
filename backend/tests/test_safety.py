@@ -201,3 +201,62 @@ def test_app_factory_has_no_docs_routes() -> None:
     assert app.docs_url is None
     assert app.redoc_url is None
     assert app.openapi_url is None
+
+
+# ---- Task 0002, phase 3: the PostgreSQL adapter stays contained and injection-proof --------------
+
+POSTGRES_MODULE = "repository_postgres.py"
+
+
+def test_psycopg_is_imported_only_by_the_postgres_repository() -> None:
+    for path, tree in _app_trees():
+        if path.name == POSTGRES_MODULE:
+            continue
+        for node in ast.walk(tree):
+            names: list[str] = []
+            if isinstance(node, ast.Import):
+                names = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+                names = [node.module]
+            for name in names:
+                assert name.split(".")[0] != "psycopg", f"{path.name} imports {name}"
+
+
+def test_postgres_repository_never_builds_sql_from_data() -> None:
+    trees = {path.name: tree for path, tree in _app_trees()}
+    tree = trees[POSTGRES_MODULE]
+
+    # Module-level names that hold a plain string (adjacent literals are one constant).
+    sql_constants = {
+        target.id
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
+    assert {"_INSERT_DRAFT", "_INSERT_EVENT", "_SELECT_DUE", "_UPDATE_EVENT"} <= sql_constants
+
+    executed = 0
+    for node in ast.walk(tree):
+        assert not isinstance(node, ast.JoinedStr), "f-string in the SQL module"
+        if isinstance(node, ast.BinOp):
+            assert not isinstance(node.op, ast.Mod | ast.Add), "string building in the SQL module"
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            assert node.func.attr != "format", ".format() in the SQL module"
+            if node.func.attr == "execute":
+                executed += 1
+                first = node.args[0]
+                assert isinstance(first, ast.Name) and first.id in sql_constants, (
+                    "execute() must be given a module-level constant, never built text"
+                )
+    assert executed >= 8
+
+
+def test_the_app_still_uses_the_in_memory_repository() -> None:
+    # Step 1 of phase 3 only adds the adapter. Wiring it in is a separate, approved step.
+    from app.modules.requests.repository_memory import InMemoryRequestRepository
+
+    app = create_app(start_dispatcher=False)
+    assert isinstance(app.state.service._repository, InMemoryRequestRepository)
