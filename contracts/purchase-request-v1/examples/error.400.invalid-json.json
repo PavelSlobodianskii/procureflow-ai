@@ -1,0 +1,7 @@
+{
+  "type": "urn:procureflow:problem:invalid-json",
+  "title": "Invalid JSON",
+  "status": 400,
+  "detail": "The request body is not valid JSON.",
+  "instance": "/api/v1/requests"
+}

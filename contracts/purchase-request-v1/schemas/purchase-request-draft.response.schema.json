@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:procureflow:contract:purchase-request-v1:draft-response",
+  "title": "PurchaseRequestDraft",
+  "description": "201 response of POST /api/v1/requests. status is always the constant 'draft'. There is no approval, purchase order or supplier information in this response, and additionalProperties is false everywhere so any leaked field fails the contract test.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "status", "created_at", "storage_mode", "data", "estimated_total"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^PR-[0-9]{4}-[0-9]{6}$",
+      "description": "Per-process counter. Resets when the API restarts because storage is in-memory (development only)."
+    },
+    "status": { "const": "draft" },
+    "created_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "description": "UTC, ISO 8601, whole seconds, trailing Z."
+    },
+    "storage_mode": {
+      "const": "in_memory_dev",
+      "description": "Honest label: data is held in process memory, is not durable, and is lost on restart."
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "quantity", "unit_price", "currency", "requester_display_name"],
+      "description": "The validated request. Strings are trimmed. unit_price is normalised to exactly 2 decimal places.",
+      "properties": {
+        "description": { "type": "string", "minLength": 3, "maxLength": 500 },
+        "quantity": { "type": "integer", "minimum": 1, "maximum": 100000 },
+        "unit_price": { "$ref": "#/$defs/money_amount" },
+        "currency": { "$ref": "#/$defs/currency" },
+        "requester_display_name": { "type": "string", "minLength": 2, "maxLength": 80 }
+      }
+    },
+    "estimated_total": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["amount", "currency"],
+      "description": "quantity multiplied by unit_price, computed by server code (never by an LLM), exactly 2 decimal places. An estimate only. It commits nobody to anything.",
+      "properties": {
+        "amount": { "$ref": "#/$defs/money_amount" },
+        "currency": { "$ref": "#/$defs/currency" }
+      }
+    }
+  },
+  "$defs": {
+    "money_amount": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.[0-9]{2}$"
+    },
+    "currency": {
+      "type": "string",
+      "enum": ["EUR", "USD", "GBP", "CHF"]
+    }
+  }
+}

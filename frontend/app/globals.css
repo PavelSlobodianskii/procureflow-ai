@@ -1,0 +1,220 @@
+@import "tailwindcss";
+
+/* Dark mode is switched by the data-theme attribute on <html> (set from the user's saved choice). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* -----------------------------------------------------------------------------------------------
+   Colour tokens. Every text/background pair below was checked for WCAG AA contrast (4.5:1 for text,
+   3:1 for input borders) in both themes. Change a value only together with a contrast check.
+   --------------------------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  --canvas: #eef2ff;
+  --canvas-2: #f8faff;
+  --surface: #ffffff;
+  --surface-2: #f3f6ff;
+  --surface-3: #e6ecfb;
+  --ink: #0f172a;
+  --ink-soft: #334155;
+  --muted: #475569;
+  --line: #cbd5e1;
+  --line-strong: #64748b;
+
+  --brand: #4338ca;
+  --brand-soft: #e0e7ff;
+  --teal: #0f766e;
+  --teal-soft: #ccfbf1;
+  --warn: #78350f;
+  --warn-soft: #fef3c7;
+  --warn-line: #fcd34d;
+  --danger: #be123c;
+  --danger-soft: #fff1f2;
+  --danger-line: #fda4af;
+  --success: #047857;
+  --success-soft: #d1fae5;
+  --pink: #9d174d;
+  --pink-soft: #fce7f3;
+  --focus: #4338ca;
+
+  --glow-1: rgba(99, 102, 241, 0.16);
+  --glow-2: rgba(20, 184, 166, 0.14);
+  --shadow-color: 30 41 120;
+
+  --grad-header: linear-gradient(90deg, #1e1b4b, #1e3a8a);
+  --grad-hero: linear-gradient(120deg, #312e81 0%, #4338ca 45%, #155e75 100%);
+  --grad-button: linear-gradient(135deg, #4338ca, #1d4ed8);
+  --grad-button-hover: linear-gradient(135deg, #3730a3, #1e40af);
+  --grad-success: linear-gradient(120deg, #047857, #0f766e);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --canvas: #0b1020;
+  --canvas-2: #10172e;
+  --surface: #131b31;
+  --surface-2: #18223d;
+  --surface-3: #1f2b4d;
+  --ink: #e8edfb;
+  --ink-soft: #c7d1ea;
+  --muted: #a3b0cf;
+  --line: #2a3659;
+  --line-strong: #7f8db3;
+
+  --brand: #a5b4fc;
+  --brand-soft: #262f63;
+  --teal: #5eead4;
+  --teal-soft: #0f3d3a;
+  --warn: #fde68a;
+  --warn-soft: #3b2a0b;
+  --warn-line: #92400e;
+  --danger: #fda4af;
+  --danger-soft: #3d0f1f;
+  --danger-line: #9f1239;
+  --success: #6ee7b7;
+  --success-soft: #0b3a2b;
+  --pink: #f9a8d4;
+  --pink-soft: #4a1431;
+  --focus: #a5b4fc;
+
+  --glow-1: rgba(99, 102, 241, 0.22);
+  --glow-2: rgba(20, 184, 166, 0.12);
+  --shadow-color: 0 0 0;
+
+  --grad-header: linear-gradient(90deg, #0b1020, #172554);
+  --grad-hero: linear-gradient(120deg, #1e1b4b 0%, #312e81 45%, #155e75 100%);
+}
+
+/* Make the tokens available as Tailwind classes: bg-surface, text-ink, border-line, text-brand ... */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-teal: var(--teal);
+  --color-teal-soft: var(--teal-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-line: var(--warn-line);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-line: var(--danger-line);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-pink: var(--pink);
+  --color-pink-soft: var(--pink-soft);
+}
+
+/* -----------------------------------------------------------------------------------------------
+   Backgrounds, shadows and focus
+   --------------------------------------------------------------------------------------------- */
+.bg-page {
+  background:
+    radial-gradient(60rem 28rem at 88% -8%, var(--glow-1), transparent 60%),
+    radial-gradient(48rem 26rem at -8% 22%, var(--glow-2), transparent 60%),
+    linear-gradient(180deg, var(--canvas), var(--canvas-2));
+}
+.bg-header {
+  background: var(--grad-header);
+}
+.bg-hero {
+  background: var(--grad-hero);
+}
+.bg-brand-gradient {
+  background: var(--grad-button);
+}
+.bg-brand-gradient:hover:not(:disabled) {
+  background: var(--grad-button-hover);
+}
+.bg-success-gradient {
+  background: var(--grad-success);
+}
+.shadow-card {
+  box-shadow:
+    0 1px 2px rgb(var(--shadow-color) / 0.06),
+    0 12px 32px -8px rgb(var(--shadow-color) / 0.22);
+}
+.shadow-soft {
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / 0.06), 0 6px 16px -6px rgb(var(--shadow-color) / 0.18);
+}
+
+/* One clear, high-contrast focus ring for everything that can be focused with the keyboard. */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+/* Elements that receive focus from code (alert, result heading, main) do not need a ring. */
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
+body {
+  background-color: var(--canvas);
+  color: var(--ink);
+}
+
+/* -----------------------------------------------------------------------------------------------
+   Motion. Only for people who have NOT asked for reduced motion; otherwise everything stays still.
+   --------------------------------------------------------------------------------------------- */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.1); }
+}
+@keyframes pop-in {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-18deg); }
+  75% { transform: rotate(14deg); }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+@keyframes confetti-drop {
+  0%, 100% { transform: translateY(-4px) rotate(0deg); }
+  50% { transform: translateY(6px) rotate(140deg); }
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-3px) rotate(2deg); }
+}
+@keyframes slide-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.svg-box {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .motion-float { animation: float-y 6s ease-in-out infinite; }
+  .motion-float-slow { animation: float-y 9s ease-in-out infinite; }
+  .motion-blink { animation: blink 5s infinite; }
+  .motion-pop { animation: pop-in 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+  .motion-wave { animation: wave 2.4s ease-in-out infinite; transform-origin: 0% 100%; }
+  .motion-twinkle { animation: twinkle 3s ease-in-out infinite; }
+  .motion-confetti { animation: confetti-drop 2.6s ease-in-out infinite; }
+  .motion-bob { animation: bob 1.2s ease-in-out infinite; }
+  .motion-slide-up { animation: slide-up 0.35s ease-out both; }
+  .lift { transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease; }
+  .lift:hover:not(:disabled) { transform: translateY(-1px); }
+  .lift:active:not(:disabled) { transform: translateY(0); }
+}

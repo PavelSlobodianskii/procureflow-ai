@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:procureflow:contract:purchase-request-v1:problem",
+  "title": "Problem",
+  "description": "Every error response (RFC 9457 'problem details'), served as Content-Type application/problem+json. The 'errors' array exists only on the 422 validation-error problem.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "title", "status", "detail", "instance"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "urn:procureflow:problem:invalid-json",
+        "urn:procureflow:problem:payload-too-large",
+        "urn:procureflow:problem:unsupported-media-type",
+        "urn:procureflow:problem:validation-error",
+        "urn:procureflow:problem:not-found",
+        "urn:procureflow:problem:method-not-allowed",
+        "urn:procureflow:problem:internal-error"
+      ]
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "status": { "type": "integer", "enum": [400, 404, 405, 413, 415, 422, 500] },
+    "detail": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Plain-language text. Never contains a stack trace, file path, SQL, secret or other internals."
+    },
+    "instance": {
+      "type": "string",
+      "description": "The request path, for example /api/v1/requests."
+    },
+    "errors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One entry per invalid field (the first failing rule for that field), in schema field order, followed by unknown fields in the order they appear in the body.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field", "code", "message"],
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "The JSON field name, or '$' when the whole body is wrong."
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "required",
+              "invalid_type",
+              "too_short",
+              "too_long",
+              "out_of_range",
+              "invalid_format",
+              "invalid_choice",
+              "unknown_field"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Display-ready English text taken from messages.json."
+          }
+        }
+      }
+    }
+  }
+}

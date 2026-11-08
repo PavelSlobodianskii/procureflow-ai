@@ -1,0 +1,7 @@
+{
+  "type": "urn:procureflow:problem:method-not-allowed",
+  "title": "Method not allowed",
+  "status": 405,
+  "detail": "This route does not allow that HTTP method.",
+  "instance": "/api/v1/requests"
+}
