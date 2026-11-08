@@ -21,6 +21,10 @@ from app.modules.requests.domain import Draft, PurchaseRequestData
 from app.modules.requests.messages import FIELD_MESSAGES, UNKNOWN_FIELD_MESSAGE
 from app.platform.settings import SERVICE_NAME, SERVICE_VERSION, STORAGE_MODE
 
+# Where a draft is kept. Contract v1 allows only "in_memory_dev"; v1.1 adds "postgres".
+# (A test keeps this in step with app.platform.settings.STORAGE_MODES.)
+StorageMode = Literal["in_memory_dev", "postgres"]
+
 # [0-9] and fullmatch on purpose: "\d" accepts non-ASCII digits and "$" accepts a trailing newline.
 _PRICE_PATTERN: Final = re.compile(r"(0|[1-9][0-9]*)(\.[0-9]{1,2})?")
 
@@ -180,18 +184,18 @@ class DraftResponse(BaseModel):
     id: str
     status: Literal["draft"]
     created_at: str
-    storage_mode: Literal["in_memory_dev"]
+    storage_mode: StorageMode
     data: DraftDataResponse
     estimated_total: EstimatedTotalResponse
 
     @classmethod
-    def from_draft(cls, draft: Draft) -> DraftResponse:
+    def from_draft(cls, draft: Draft, storage_mode: StorageMode = STORAGE_MODE) -> DraftResponse:
         data = draft.data
         return cls(
             id=draft.id,
             status=draft.status,
             created_at=domain.format_timestamp(draft.created_at),
-            storage_mode=STORAGE_MODE,
+            storage_mode=storage_mode,
             data=DraftDataResponse(
                 description=data.description,
                 quantity=data.quantity,
@@ -212,4 +216,4 @@ class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
     service: Literal["procureflow-api"] = SERVICE_NAME
     version: str = SERVICE_VERSION
-    storage_mode: Literal["in_memory_dev"] = STORAGE_MODE
+    storage_mode: StorageMode = STORAGE_MODE

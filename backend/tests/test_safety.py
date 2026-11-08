@@ -260,3 +260,48 @@ def test_the_app_still_uses_the_in_memory_repository() -> None:
 
     app = create_app(start_dispatcher=False)
     assert isinstance(app.state.service._repository, InMemoryRequestRepository)
+
+
+# ---- Task 0002, phase 3: only the Vercel entry point reads the environment -----------------------
+
+BACKEND_DIR = APP_DIR.parent
+ENTRY_POINT = "index.py"
+
+
+def _reads_environment(tree: ast.AST) -> bool:
+    return any(
+        isinstance(node, ast.Attribute) and node.attr in {"environ", "getenv"}
+        for node in ast.walk(tree)
+    )
+
+
+def test_only_the_vercel_entry_point_reads_the_environment() -> None:
+    readers = {
+        path.relative_to(BACKEND_DIR).as_posix()
+        for path in [*APP_DIR.rglob("*.py"), *BACKEND_DIR.glob("*.py")]
+        if _reads_environment(ast.parse(path.read_text(encoding="utf-8")))
+    }
+    assert readers == {ENTRY_POINT}
+
+
+def test_the_entry_point_never_prints_or_logs_the_database_setting() -> None:
+    tree = ast.parse((BACKEND_DIR / ENTRY_POINT).read_text(encoding="utf-8"))
+    log_methods = {"debug", "info", "warning", "error", "exception", "critical"}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        name = (
+            node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
+        )
+        if name == "print" or name in log_methods:
+            for argument in node.args:
+                names = {n.id for n in ast.walk(argument) if isinstance(n, ast.Name)}
+                assert not names & {"database_url", "dsn", "environ"}, f"{name}() uses {names}"
+            if name == "print":
+                pytest.fail("index.py must not print")
+
+
+def test_the_entry_point_opens_writes_only_for_the_exact_value_one() -> None:
+    source = (BACKEND_DIR / ENTRY_POINT).read_text(encoding="utf-8")
+    assert 'environ.get("POSTGRES_WRITES_ENABLED") == "1"' in source
+    assert "start_dispatcher=False" in source  # no in-process dispatcher on Vercel

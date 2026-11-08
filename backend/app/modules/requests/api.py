@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request, Response
+from fastapi.concurrency import run_in_threadpool
 
 from app.modules.requests.schemas import (
     DraftResponse,
@@ -17,6 +19,7 @@ from app.modules.requests.service import RequestService
 from app.platform.problems import NO_STORE, ProblemError
 
 router = APIRouter()
+logger = logging.getLogger("procureflow.api")
 
 
 def get_service(request: Request) -> RequestService:
@@ -88,9 +91,9 @@ def _parse_json(raw: bytes) -> object:
 
 
 @router.get("/health", response_model=HealthResponse)
-async def health(response: Response) -> HealthResponse:
+async def health(request: Request, response: Response) -> HealthResponse:
     response.headers.update(NO_STORE)
-    return HealthResponse()
+    return HealthResponse(storage_mode=request.app.state.storage_mode)
 
 
 @router.post("/api/v1/requests", response_model=DraftResponse, status_code=201)
@@ -99,6 +102,13 @@ async def create_purchase_request(
     response: Response,
     service: RequestService = Depends(get_service),  # noqa: B008
 ) -> DraftResponse:
+    # Writes can be switched off (task 0002, decision D9). A closed gate is the contract's own 404
+    # problem, exactly what an unknown route returns. It is checked before anything else, so a
+    # closed gate reads no body and stores nothing.
+    if not request.app.state.writes_enabled:
+        logger.warning("POST /api/v1/requests rejected: writes are disabled")
+        raise ProblemError(404)
+
     # Order required by the contract: (404/405 by routing) -> 415 -> 413 -> 400 -> 422.
     if not _is_json_content_type(request.headers.get("content-type")):
         raise ProblemError(415)
@@ -109,6 +119,8 @@ async def create_purchase_request(
     except InvalidRequestBodyError as exc:
         raise ProblemError(422, exc.errors) from None
 
-    draft = service.create_draft(data)
+    # create_draft is synchronous and may talk to a database. Run it in a worker thread so the
+    # event loop (and every other request, /health included) is never blocked while it waits.
+    draft = await run_in_threadpool(service.create_draft, data)
     response.headers.update(NO_STORE)
-    return DraftResponse.from_draft(draft)
+    return DraftResponse.from_draft(draft, request.app.state.storage_mode)
