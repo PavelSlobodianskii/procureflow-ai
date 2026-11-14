@@ -311,3 +311,65 @@ Not tested on the deployed copies: the 52 shared contract cases, a successful dr
 - Phase 3 is next: the owner creates the Neon project (Free plan, no card, a US East region to match `iad1`), reviews and applies `backend/migrations/0001_purchase_requests.sql`, sets `DATABASE_URL`, and runs the PostgreSQL tests. Only after they pass is `POSTGRES_WRITES_ENABLED` set to `1`.
 - The tree hash of `contracts/purchase-request-v1/` is `5d49973d1cb592bf2d152d51ef0ae9b67944419f`, and has been since the commit that added the contract (`3bd35bf`). The value `62f0a6f7...` in the header table of this brief does not match any commit. The contract files are unchanged. The owner decides which value the brief should carry.
 - Sections 2 to 4 above still show the state of 2026-11-08 and are kept as a record.
+
+## 14. Status update, 2026-11-14 (phase 3: database)
+
+This section follows section 13 on the same day. Where the two differ, this section is the newer one. The words "deployed" and "tested" are used as defined in section 2. Nothing here is "production-ready".
+
+### 14.1 Status table
+
+| Part | Deployed | Tested | Production-ready |
+|---|---|---|---|
+| Neon project, Free plan, region `eu-central-1` (Frankfurt) | Yes. Branch `production` (default) and branch `test` | n/a | No |
+| Migration `0001_purchase_requests.sql` | Applied by the owner in the Neon SQL editor on `production` | Read back by Claude: tables `purchase_requests` and `outbox_events` exist, and the sequence exists | No |
+| PostgreSQL integration tests | n/a | Run by Claude on this PC against the `test` branch only: `tests/test_repository_contract.py` and `tests/test_api_postgres.py`, **44 passed, 0 failed, 0 skipped**, pooled and direct | No |
+| Backend with PostgreSQL storage | Yes. `DATABASE_URL` and `POSTGRES_WRITES_ENABLED=1` set, function region `fra1` | Deployed copy: probes in 14.3 | No |
+| A draft written through the frontend form | Not verified | **Not tested.** The owner reported a saved draft, but the production table was empty afterwards (14.4) | No |
+| Persistence across a redeploy | Not verified at the time of writing | Not tested | No |
+| The 52 shared contract cases on the deployed copy | n/a | Not run | No |
+
+### 14.2 What exists
+
+Neon (read through the Neon CLI and SQL, 2026-11-14). No secret values are recorded here.
+
+| Item | Value |
+|---|---|
+| Plan | Free. The console shows an "Upgrade" button. No card was entered by Claude |
+| Branch `production` | Default branch. Holds the tables of the migration, plus `playing_with_neon`, a sample table with 10 rows that Neon's own starter query created when the migration was run. The application never touches it |
+| Branch `test` | Created by Claude from `production` for the integration tests. Its own compute endpoint |
+| Region | `eu-central-1`, not US East as section 13.5 proposed. The backend was moved instead (below) |
+
+Vercel, backend project, changes since section 13:
+
+| Item | Value |
+|---|---|
+| `DATABASE_URL` | Sensitive, Production. The pooled connection string of the `production` branch |
+| `POSTGRES_WRITES_ENABLED` | Plain, Production, `1`. Set only after the integration tests passed |
+| Function region | Changed from `iad1` to `fra1`, to sit next to the database. Verified in the `x-vercel-id` response header (`fra1::fra1`). The frontend project stays in `iad1` |
+
+The database password was pasted into the Claude session by the owner and is visible in that session's transcript, like the gateway token and the bypass secret (13.2). It is not in the repository.
+
+### 14.3 Tests of the deployed backend, 2026-11-14
+
+Direct requests to the backend's main address with both credentials, run by Claude with `curl`:
+
+| Request | Result |
+|---|---|
+| `GET /health` | 200, `storage_mode: postgres` |
+| `POST /api/v1/requests` with an empty object | Contract 422 problem. The write route is open |
+| `POST /api/v1/requests` without the gateway token | Contract 404 problem |
+| Anonymous `GET /health` | 302, Vercel login wall |
+| `POST /api/v1/requests` with the contract's example request (`create-request.valid.json`, synthetic) | 201 in 0.58 s, id `PR-2026-000001`, `storage_mode: postgres` |
+
+Read back from the `production` branch straight afterwards: one row `PR-2026-000001` in `purchase_requests` (status `draft`, total 2499.00 EUR), one `purchase_request.drafted` event with status `pending` in `outbox_events`, and the sequence at 1. This is the only evidence so far that the deployed backend writes to Neon. The row is synthetic test data created by Claude, not an owner request.
+
+During the switch-over one write probe returned the 404 problem before all later ones returned 422. The runtime log shows that this request was answered by the previous deployment ("writes are disabled").
+
+### 14.4 Open points
+
+- **The form path is not verified.** Before the probe in 14.3 the `production` table held no rows and the ID sequence had never been used, although the owner had reported a saved draft. Either that save did not happen, or it did not go to this backend. Next check: the owner saves a draft through the frontend while logged in, and the table is read again. The expected ID is `PR-2026-000002`.
+- **Persistence** across a redeploy and a cold start is not yet checked.
+- **Outbox events stay `pending`.** Nothing reads them until a worker exists (a later task), as planned in phase 3.
+- **Sample table.** The owner decides whether to drop `playing_with_neon`.
+- **Coding-assistant tooling added on the owner's request:** `.mcp.json` (Neon MCP server, OAuth, read-only, pinned to this project), the skills `.claude/skills/neon` and `.claude/skills/neon-postgres`, and `skills-lock.json`. This is development tooling. It is separate from the application's own MCP server, which is not built.
+- **Secrets.** If the Claude session transcript of 2026-11-14 is ever shared, the owner rotates the gateway token, the bypass secret and the database password.
