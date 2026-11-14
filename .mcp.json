@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "Neon": {
+      "type": "http",
+      "url": "https://mcp.neon.tech/mcp?readonly=true&projectId=broad-butterfly-70295869"
+    }
+  }
+}
