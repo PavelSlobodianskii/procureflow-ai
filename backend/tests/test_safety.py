@@ -296,7 +296,8 @@ def test_the_entry_point_never_prints_or_logs_the_database_setting() -> None:
         if name == "print" or name in log_methods:
             for argument in node.args:
                 names = {n.id for n in ast.walk(argument) if isinstance(n, ast.Name)}
-                assert not names & {"database_url", "dsn", "environ"}, f"{name}() uses {names}"
+                secrets = {"database_url", "dsn", "environ", "gateway_token", "token"}
+                assert not names & secrets, f"{name}() uses {names}"
             if name == "print":
                 pytest.fail("index.py must not print")
 

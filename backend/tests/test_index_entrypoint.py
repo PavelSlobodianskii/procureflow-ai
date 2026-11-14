@@ -20,12 +20,22 @@ from app.modules.requests.repository_postgres import (
 )
 from index import app as module_level_app
 from index import build_app
-from tests.helpers import example, post_json, valid_body, validator, validator_v11
+from tests.helpers import (
+    DEV_GATEWAY_TOKEN,
+    example,
+    post_json,
+    valid_body,
+    validator,
+    validator_v11,
+)
 from tests.test_repository_postgres_fake import FakeFactory
 
 # A visibly fake connection description (key/value form, no password). It is only a marker string.
 DSN = "host=127.0.0.1 dbname=dev-db user=dev-user"
-ON_VERCEL = {"VERCEL": "1"}
+# On Vercel the gateway gate is always on (tests/test_gateway.py covers the gate itself). These
+# tests are about storage and the write gate, so they run with a visibly fake token in place.
+DEV_TOKEN = DEV_GATEWAY_TOKEN
+ON_VERCEL = {"VERCEL": "1", "GATEWAY_TOKEN": DEV_TOKEN}
 
 
 class FactorySpy:
@@ -41,7 +51,9 @@ class FactorySpy:
 
 
 def client_for(app: FastAPI) -> TestClient:
-    return TestClient(app, raise_server_exceptions=False)
+    return TestClient(
+        app, raise_server_exceptions=False, headers={"x-procureflow-gateway": DEV_TOKEN}
+    )
 
 
 def assert_writes_closed(app: FastAPI, spy: FactorySpy) -> None:

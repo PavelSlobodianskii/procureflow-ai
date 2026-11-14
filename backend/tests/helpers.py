@@ -25,6 +25,10 @@ SCHEMAS_V11_DIR = CONTRACT_V11_DIR / "schemas"
 JSON_HEADERS = {"content-type": "application/json"}
 FIXED_NOW = datetime(2026, 11, 8, 10, 15, 30, tzinfo=UTC)
 
+# Visibly fake, local-only gateway values (Tier 1, prefixed "dev-"). They are not secrets.
+DEV_GATEWAY_TOKEN = "dev-gateway-token-0123456789-abcdefghij"  # noqa: S105
+OTHER_GATEWAY_TOKEN = "dev-gateway-token-0123456789-abcdefghiX"  # noqa: S105
+
 
 def load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))

@@ -5,12 +5,34 @@ import type { NextConfig } from "next";
  *
  * - Read from the BACKEND_URL environment variable (set in PowerShell, never in a .env file).
  * - Default: the real backend on 127.0.0.1:8000. The mock run uses http://127.0.0.1:8001.
- * - Only loopback addresses are accepted. In this slice the frontend must never forward
- *   traffic to an external host (task 0001, F6). Anything else stops the build with an error.
- * - Rewrites are read when Next.js starts (dev) or builds (production), so set BACKEND_URL first.
+ * - Loopback addresses are accepted exactly as before (task 0001, F6).
+ * - Any other host is refused unless ALL of these hold (task 0002, phase 2a):
+ *     BACKEND_ALLOW_REMOTE is exactly "1", the scheme is https, there is no user name or
+ *     password, the path is empty or "/", and there is no query and no fragment.
+ *   Anything else stops the build with an error that never prints the value.
+ * - Rewrites are read when Next.js starts (dev) or builds (production), so set BACKEND_URL first
+ *   and build again after changing it.
+ * - The gateway token is NOT handled here. proxy.ts adds it per request, so it is never part of
+ *   the build output.
  */
 const DEFAULT_BACKEND_URL = "http://127.0.0.1:8000";
 const LOOPBACK_HOSTNAMES = new Set(["127.0.0.1", "localhost", "[::1]"]);
+
+function requireSafeRemote(url: URL, raw: string): void {
+  if (process.env.BACKEND_ALLOW_REMOTE !== "1") {
+    throw new Error(
+      "BACKEND_URL must point to this computer (127.0.0.1, localhost or [::1]). " +
+        "A remote backend is allowed only when BACKEND_ALLOW_REMOTE is exactly 1.",
+    );
+  }
+  if (url.protocol !== "https:") {
+    throw new Error("A remote BACKEND_URL must start with https://");
+  }
+  // "#" and "?" are checked on the raw text: the URL parser drops an empty query or fragment.
+  if ((url.pathname !== "" && url.pathname !== "/") || raw.includes("?") || raw.includes("#")) {
+    throw new Error("A remote BACKEND_URL must be an origin only: no path, query or fragment.");
+  }
+}
 
 function resolveBackendOrigin(): string {
   const raw = process.env.BACKEND_URL?.trim() || DEFAULT_BACKEND_URL;
@@ -28,10 +50,7 @@ function resolveBackendOrigin(): string {
     throw new Error("BACKEND_URL must not contain a user name or password.");
   }
   if (!LOOPBACK_HOSTNAMES.has(url.hostname)) {
-    throw new Error(
-      "BACKEND_URL must point to this computer (127.0.0.1, localhost or [::1]). " +
-        "External hosts are not allowed in this slice.",
-    );
+    requireSafeRemote(url, raw);
   }
   return url.origin;
 }

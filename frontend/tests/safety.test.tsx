@@ -179,11 +179,19 @@ describe("next.config.ts", () => {
     vi.resetModules();
   });
 
-  async function loadConfig(backendUrl?: string) {
+  async function loadConfig(backendUrl?: string, allowRemote = "") {
     vi.resetModules();
     if (backendUrl === undefined) vi.stubEnv("BACKEND_URL", "");
     else vi.stubEnv("BACKEND_URL", backendUrl);
+    vi.stubEnv("BACKEND_ALLOW_REMOTE", allowRemote);
     return (await import("../next.config")).default;
+  }
+
+  async function loadError(backendUrl: string, allowRemote = "") {
+    return loadConfig(backendUrl, allowRemote).then(
+      () => undefined,
+      (caught: Error) => caught,
+    );
   }
 
   it("forwards only /api/v1/* and defaults to the real backend on 127.0.0.1:8000", async () => {
@@ -220,6 +228,64 @@ describe("next.config.ts", () => {
     expect(error).toBeInstanceOf(Error);
     expect(error?.message).not.toContain("secret");
     expect(error?.message).not.toContain(url);
+  });
+
+  // ---- Task 0002, phase 2a: a remote backend, only behind an explicit switch ----
+
+  it.each(["https://backend.example", "https://backend.example/", "https://backend.example:8443"])(
+    "accepts the remote origin %s when BACKEND_ALLOW_REMOTE is 1",
+    async (url) => {
+      const config = await loadConfig(url, "1");
+      const origin = new URL(url).origin;
+      expect(await config.rewrites?.()).toEqual([
+        { source: "/api/v1/:path*", destination: `${origin}/api/v1/:path*` },
+      ]);
+    },
+  );
+
+  it.each(["", "0", "true", "yes", "01", " 1", "1 ", "on"])(
+    "refuses a remote backend when BACKEND_ALLOW_REMOTE is %j",
+    async (flag) => {
+      const error = await loadError("https://backend.example", flag);
+      expect(error).toBeInstanceOf(Error);
+      expect(error?.message).not.toContain("backend.example");
+    },
+  );
+
+  it.each([
+    "http://backend.example", // not https
+    "ftp://backend.example",
+    "https://user:secret@backend.example", // credentials
+    "https://user@backend.example",
+    "https://backend.example/api", // a path
+    "https://backend.example/api/v1/",
+    "https://backend.example?token=secret", // a query
+    "https://backend.example/?",
+    "https://backend.example#secret", // a fragment
+    "https://backend.example/#",
+    "https://",
+  ])("refuses the remote BACKEND_URL=%s even with the switch, and does not print it", async (url) => {
+    const error = await loadError(url, "1");
+    expect(error).toBeInstanceOf(Error);
+    expect(error?.message).not.toContain("secret");
+    expect(error?.message).not.toContain("backend.example");
+  });
+
+  it("the switch does not change the loopback behaviour", async () => {
+    const config = await loadConfig("http://127.0.0.1:8001", "1");
+    expect(await config.rewrites?.()).toEqual([
+      { source: "/api/v1/:path*", destination: "http://127.0.0.1:8001/api/v1/:path*" },
+    ]);
+  });
+
+  it("never puts the gateway token into the configuration", async () => {
+    vi.stubEnv("BACKEND_GATEWAY_TOKEN", "dev-gateway-token-0123456789-abcdefghij");
+    vi.stubEnv("BACKEND_PROTECTION_BYPASS", "dev-bypass-0123456789-abcdefghijklmno");
+    const config = await loadConfig("https://backend.example", "1");
+    const everything = JSON.stringify([config, await config.rewrites?.(), await config.headers?.()]);
+    expect(everything).not.toContain("dev-gateway-token");
+    expect(everything).not.toContain("dev-bypass");
+    expect(stripComments(read(join(ROOT, "next.config.ts")))).not.toMatch(/GATEWAY|BYPASS/);
   });
 
   it("sets security headers on pages and no CORS headers", async () => {

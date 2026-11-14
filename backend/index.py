@@ -8,6 +8,10 @@ This is the only file outside the tests that reads the environment. The applicat
 
 What it builds, by environment (``build_app`` below):
 
+* On Vercel, the gateway gate is always on (task 0002, phase 2b). ``GATEWAY_TOKEN`` must hold at
+  least 32 characters, and every request must carry it in the ``x-procureflow-gateway`` header.
+  Without a usable token the app **fails closed**: every route, ``/health`` included, answers the
+  contract's 404 problem. ``GATEWAY_TOKEN`` is a secret: it is never logged or printed here.
 * Not on Vercel (``VERCEL`` unset): the same app as ``app.main`` (in-memory, writes open).
 * On Vercel, with BOTH ``DATABASE_URL`` and ``POSTGRES_WRITES_ENABLED=1``: drafts are stored in
   PostgreSQL and writes are open. Building the app does NOT open a database connection. The
@@ -42,6 +46,9 @@ from app.modules.requests.repository_postgres import (
 
 logger = logging.getLogger("procureflow.entrypoint")
 
+# A shorter token is treated as missing. 32 random characters is the minimum the owner sets.
+MIN_GATEWAY_TOKEN_LENGTH = 32
+
 
 def build_app(
     environ: Mapping[str, str],
@@ -51,6 +58,16 @@ def build_app(
     """Build the app for this environment. ``make_factory`` is injectable so tests never connect."""
     if not environ.get("VERCEL"):
         return create_app()
+
+    # The gateway gate. Fail closed: without a usable token nothing is served at all.
+    gateway_token: str | None = environ.get("GATEWAY_TOKEN", "")
+    gateway_closed = len(gateway_token or "") < MIN_GATEWAY_TOKEN_LENGTH
+    if gateway_closed:
+        gateway_token = None
+        logger.error(
+            "GATEWAY_TOKEN is missing or shorter than %d characters: every request is refused",
+            MIN_GATEWAY_TOKEN_LENGTH,
+        )
 
     database_url = environ.get("DATABASE_URL", "")
     writes_opened = environ.get("POSTGRES_WRITES_ENABLED") == "1"
@@ -62,13 +79,20 @@ def build_app(
             ids=PostgresRequestIdGenerator(connect),
             start_dispatcher=False,
             writes_enabled=True,
+            gateway_token=gateway_token,
+            gateway_closed=gateway_closed,
         )
 
     if writes_opened:
         logger.error(
             "POSTGRES_WRITES_ENABLED is 1 but DATABASE_URL is not set: writes stay disabled"
         )
-    return create_app(start_dispatcher=False, writes_enabled=False)
+    return create_app(
+        start_dispatcher=False,
+        writes_enabled=False,
+        gateway_token=gateway_token,
+        gateway_closed=gateway_closed,
+    )
 
 
 app = build_app(os.environ)

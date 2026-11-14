@@ -27,6 +27,7 @@ from app.modules.requests.domain import RequestIdGenerator, RequestIdSource
 from app.modules.requests.repository import OutboxRepository
 from app.modules.requests.repository_memory import InMemoryRequestRepository
 from app.modules.requests.service import RequestService
+from app.platform.gateway import GatewayGate
 from app.platform.problems import register_problem_handlers
 from app.platform.settings import SERVICE_VERSION, STORAGE_MODE, STORAGE_MODES, Settings
 
@@ -44,13 +45,22 @@ def create_app(
     handler: EventHandler = log_event_handler,
     rand: Callable[[], float] = random.random,
     start_dispatcher: bool = True,
+    gateway_token: str | None = None,
+    gateway_closed: bool = False,
 ) -> FastAPI:
     """Build the app. The keyword arguments exist so tests can inject fakes.
+
+    ``gateway_token`` switches the gateway gate on: every request must then carry that token in
+    the ``x-procureflow-gateway`` header, or it gets the contract's 404 problem. ``gateway_closed``
+    refuses every request. Both are off by default (task 0002, phase 2b; see platform/gateway.py).
 
     ``ids`` is where request IDs come from (default: the in-memory counter). ``writes_enabled``
     switches ``POST /api/v1/requests`` off: a closed gate answers with the contract's 404 problem,
     exactly like an unknown route (task 0002, decision D9). Both default to the old behaviour.
     """
+    if gateway_token is not None and not gateway_token:
+        # Fail at startup, not on the first request: an empty token must never mean "open".
+        raise ValueError("the gateway token must not be empty")
     settings = settings or Settings()
     repo = repository if repository is not None else InMemoryRequestRepository()
 
@@ -108,6 +118,8 @@ def create_app(
     app.state.service = RequestService(repo, id_source, clock)
     app.include_router(router)
     register_problem_handlers(app)
+    if gateway_token is not None or gateway_closed:
+        app.add_middleware(GatewayGate, token=gateway_token, closed=gateway_closed)
     return app
 
 

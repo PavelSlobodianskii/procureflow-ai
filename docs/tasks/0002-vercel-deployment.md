@@ -244,3 +244,42 @@ Data from PyPI metadata, read on 2026-11-08. The licence texts are confirmed at 
 - Cold starts: Neon resumes after 5 minutes idle. The form's 10 second timeout should cover it. Measure it in phase 5.
 - Hobby is for non-commercial personal use. A portfolio demo fits. Revisit if the purpose changes.
 - Vercel and Neon limits and prices can change. Re-check them at each phase.
+
+## 13. Status update, 2026-11-14
+
+This section records what changed after 2026-11-08. Where it differs from sections 2 to 4, this section is the newer one. The words "deployed" and "tested" are used as defined in section 2.
+
+**Owner instruction.** On 2026-11-14 the owner told Claude, in the session, to set the project rules aside for this work and to carry out the steps directly, including changes on Vercel. Secret values, account creation and anything that costs money stayed with the owner.
+
+**Vercel (verified through the Vercel MCP server and anonymous GET probes, 2026-11-14):**
+
+| Item | Backend project | Frontend project |
+|---|---|---|
+| Framework preset | FastAPI | Next.js |
+| Latest production deployment | 2026-11-08, state READY | 2026-11-08, state READY |
+| Vercel Authentication before | On, "Standard Protection": the main production address was public and `GET /health` returned the health document to anyone | On, "Standard Protection": the main production address served the app to anyone |
+| Vercel Authentication after | **On, "All Deployments"** (changed by Claude on the owner's instruction) | **On, "All Deployments"** (same) |
+| Anonymous GET after the change | 302 to the Vercel login wall on `/health` and `/api/v1/requests` | 302 to the Vercel login wall on `/` |
+
+Phase 0 (containment) is therefore done. Environment variable names, Root Directory, Production Branch and the plan or billing page were **not** read and stay "Not verified".
+
+**Code (branch `feat/gateway-token`, not merged, not deployed):**
+
+- Phase 2b, backend gateway: `backend/app/platform/gateway.py` (`GatewayGate`), `create_app(gateway_token=..., gateway_closed=...)`, and `backend/index.py` reads `GATEWAY_TOKEN`. On Vercel the gate is always on and fails closed: without a token of at least 32 characters every route, `/health` included, answers the contract's 404 problem.
+- Phase 2a, frontend: `frontend/next.config.ts` accepts a non-loopback `BACKEND_URL` only with `BACKEND_ALLOW_REMOTE=1`, https, no credentials, no path, no query and no fragment. `frontend/proxy.ts` adds `x-procureflow-gateway` from `BACKEND_GATEWAY_TOKEN` to `/api/v1/*` requests and removes any value sent by the browser.
+- Addition to the plan: `frontend/proxy.ts` also sends `x-vercel-protection-bypass` when the optional variable `BACKEND_PROTECTION_BYPASS` (Tier 2, frontend, Production) is set. This is the "Protection Bypass for Automation" alternative to D7 named in section 3. Whether that feature is available on the Hobby plan is still **not verified**.
+- D4 is settled in the code: `psycopg[binary]>=3.3,<4` in `backend/pyproject.toml`.
+
+**Tested (local only, 2026-11-14):**
+
+- Backend: `pytest` 422 passed, 36 skipped (the owner-run PostgreSQL tests, NOT run), `ruff check` and `ruff format --check` clean.
+- Frontend: `vitest` 449 passed, `eslint` clean, `tsc --noEmit` clean, `next build` succeeded.
+- The open question of phase 2a is answered **for Next.js's own server**: with a gated local backend and `next start`, a draft POST through the frontend returned 201 with the token set, and the contract 404 without it, with a browser-supplied token, and on a direct request to the backend. It is **not** tested on Vercel, where rewrites run on Vercel's own routing layer.
+
+**Not done:**
+
+- Nothing from this branch is deployed. The deployed copies are still the 2026-11-08 builds.
+- The Neon database is not created, the migration is not applied, and the PostgreSQL tests are not run.
+- `GATEWAY_TOKEN`, `BACKEND_GATEWAY_TOKEN`, `BACKEND_URL`, `BACKEND_ALLOW_REMOTE`, `DATABASE_URL` and `POSTGRES_WRITES_ENABLED` are not set by Claude. The owner sets them.
+- D7 is still pending. With Vercel Authentication on for all deployments of the backend, the frontend cannot reach it until the owner either sets a verified protection bypass or decides D7.
+- Once this branch is merged and deployed, the backend answers 404 on every route until the owner sets `GATEWAY_TOKEN`. That is the intended fail-closed behaviour.
