@@ -373,3 +373,13 @@ During the switch-over one write probe returned the 404 problem before all later
 - **Sample table.** The owner decides whether to drop `playing_with_neon`.
 - **Coding-assistant tooling added on the owner's request:** `.mcp.json` (Neon MCP server, OAuth, read-only, pinned to this project), the skills `.claude/skills/neon` and `.claude/skills/neon-postgres`, and `skills-lock.json`. This is development tooling. It is separate from the application's own MCP server, which is not built.
 - **Secrets.** If the Claude session transcript of 2026-11-14 is ever shared, the owner rotates the gateway token, the bypass secret and the database password.
+
+### 14.5 Later the same day: form path and persistence verified
+
+This subsection replaces the two "Not verified" rows of 14.1 and the first two open points of 14.4.
+
+- **A draft written through the frontend form: tested on the deployed copy.** The owner saved a draft through the form on the frontend's main address while logged in to Vercel, and the page showed `PR-2026-000002`. Claude read the `production` branch afterwards: the row `PR-2026-000002` exists (created 2026-11-14 13:45 UTC, status `draft`, quantity 56 at 56.00 EUR, total 3136.00 EUR, computed by the backend), with its `purchase_request.drafted` event in status `pending`, and the sequence is at 2. This covers the whole path: browser, Vercel Authentication, frontend, protection bypass, gateway token, backend, Neon.
+- **Persistence across a redeploy: tested.** After the push of commits `d52ed6d` and `0c60e64`, Vercel deployed the backend again. The new deployment answered with `storage_mode: postgres`, and `PR-2026-000001` was still in the table.
+- **The earlier report explained.** The first owner report of a saved draft (14.4) was not backed by a row. No cause was established. The second save is the one recorded here.
+- **Still not tested on the deployed copy:** the 52 shared contract cases, and a cold start after Neon's compute has gone to sleep.
+- **Neon CLI.** The login used for the test branch was removed afterwards: the OAuth token was revoked and the credentials file deleted.
