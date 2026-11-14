@@ -383,3 +383,34 @@ This subsection replaces the two "Not verified" rows of 14.1 and the first two o
 - **The earlier report explained.** The first owner report of a saved draft (14.4) was not backed by a row. No cause was established. The second save is the one recorded here.
 - **Still not tested on the deployed copy:** the 52 shared contract cases, and a cold start after Neon's compute has gone to sleep.
 - **Neon CLI.** The login used for the test branch was removed afterwards: the OAuth token was revoked and the credentials file deleted.
+
+### 14.6 Closing checks, 2026-11-14
+
+These checks replace the "still not tested" line of 14.5. With them, every item of phase 5b has been run against the deployed copy, with the differences noted below.
+
+**The 52 shared contract cases on the deployed backend: tested.** Claude replayed `contracts/purchase-request-v1/examples/cases.json` over HTTPS against the backend's main address with both credentials, applying the same assertions as `backend/tests/test_shared_cases.py`. Result: 52 cases (8 accepted, 44 rejected), **52 passed, 0 failed**. Response times: median 0.08 s, maximum 1.30 s. Two differences from the plan in phase 5b:
+
+- The requests went **directly to the backend**, not through the frontend. Claude cannot pass the frontend's Vercel Authentication. The frontend path itself is covered by the owner's form save in 14.5.
+- Accepted responses were validated against the **v1.1** draft schema, because the deployed backend reports `storage_mode: postgres`, a value that only contract v1.1 allows. Rejected responses were validated against the v1 problem schema.
+
+**Cold start: tested.** After 7 minutes 16 seconds without any request to the backend or the database (Neon's Free compute suspends after about 5 minutes idle), three drafts were saved one after another: 2.65 s, 0.33 s and 0.30 s, all 201. The first is inside the form's 10 second limit. Whether the compute was in fact suspended was not read from Neon. The slower first request is consistent with it.
+
+**Test data removed.** Claude deleted the rows it had created in the `production` branch and their outbox events: `PR-2026-000001` (the probe of 14.3), `PR-2026-000003` to `PR-2026-000010` (the accepted cases) and `PR-2026-000011` to `PR-2026-000013` (the cold start). The sample table `playing_with_neon` was dropped. What remains: the owner's draft `PR-2026-000002` with its `pending` event, and the tables `purchase_requests` and `outbox_events`. The sequence stands at 13, so the next draft is `PR-2026-000014`. The gaps in the numbering are expected: a sequence never reuses a number.
+
+**Contract hash corrected.** The header of this brief gave `62f0a6f7e20aa7a17b8f9bc2e66f50c7bc7a61bf` as the tree hash of `contracts/purchase-request-v1/`. That value is the hash of the **parent folder** `contracts/` at the freeze commit `3bd35bf`, when the folder held v1 only, and task 0001 records it correctly as such. Since commit `c7afb2b` added `contracts/purchase-request-v1.1/` next to it, the parent folder's hash is different, as it must be. The v1 folder itself has the hash `5d49973d1cb592bf2d152d51ef0ae9b67944419f` at `3bd35bf` and on `main` today: contract v1 is unchanged. The header now carries that value. An earlier wording in 13.5 claimed the old value matched no commit. That claim was Claude's mistake.
+
+**Acceptance criteria of section 9, as of this entry:**
+
+| ID | State |
+|---|---|
+| V1 | Holds. Contract v1 unchanged (hash above). Contract and shared-case tests pass locally and on the deployed backend |
+| V2 | Holds for the local runs recorded in 13 (backend 422 passed and 36 skipped before the database existed, frontend 449, lint, typecheck, build). The 36 skipped tests were later run on the test branch (14.1) |
+| V3 | Holds, locally and on the deployed copy (13.3) |
+| V4 | Holds, by the local tests of phase 2a |
+| V5 | Holds (14.5) |
+| V6 | Holds for the repository, build output and logs. The three secrets are in the Claude session transcript of 2026-11-14 (13.2, 14.2). The owner decided on 2026-11-14 not to rotate them |
+| V7 | EUR 0 spent by Claude. No card was entered and no plan was upgraded. The plan and billing pages of Vercel and Neon were not read |
+| V8 | **Does not hold as written.** On the owner's instruction of 2026-11-14, Claude changed Vercel settings, set environment variables, triggered deployments and pushed to `main` without a pull request. Vercel Authentication was never switched off |
+| V9 | Holds for sections 13 and 14. Sections 2 to 4 keep the state of 2026-11-08 as a record |
+
+**Left open on purpose.** `AGENTS.md` still describes deployments as owner-only. The owner decided on 2026-11-14 not to change it in this session. T3 remains a demo target and is not "production-ready".
