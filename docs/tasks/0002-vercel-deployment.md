@@ -6,7 +6,7 @@
 | **Integration branch** | To be created from the updated `main` after the owner approves (suggested name `feat/vercel-deployment`) |
 | **Budget** | EUR 0 planned. Hard maximum EUR 5 per calendar month for everything combined (B-4). Vercel Hobby and Neon Free only: no card, no paid plan, no domain (B-3, B-5) |
 | **Data** | Synthetic only |
-| **Contract** | `contracts/purchase-request-v1/` stays frozen and unchanged. Its tree hash must remain `62f0a6f7e20aa7a17b8f9bc2e66f50c7bc7a61bf` |
+| **Contract** | `contracts/purchase-request-v1/` stays frozen and unchanged. Its tree hash must remain `5d49973d1cb592bf2d152d51ef0ae9b67944419f`. (Corrected on 2026-11-14: the value `62f0a6f7e20aa7a17b8f9bc2e66f50c7bc7a61bf` that stood here is the hash of the parent folder `contracts/` at the freeze commit `3bd35bf`, when it held v1 only. See 14.6) |
 | **Workflow** | One writing Claude Code session on one branch. The owner performs every deployment and every step that touches Vercel, Neon or a secret |
 
 ## 1. Goal and scope
@@ -309,7 +309,7 @@ Not tested on the deployed copies: the 52 shared contract cases, a successful dr
 ### 13.5 Open points
 
 - Phase 3 is next: the owner creates the Neon project (Free plan, no card, a US East region to match `iad1`), reviews and applies `backend/migrations/0001_purchase_requests.sql`, sets `DATABASE_URL`, and runs the PostgreSQL tests. Only after they pass is `POSTGRES_WRITES_ENABLED` set to `1`.
-- The tree hash of `contracts/purchase-request-v1/` is `5d49973d1cb592bf2d152d51ef0ae9b67944419f`, and has been since the commit that added the contract (`3bd35bf`). The value `62f0a6f7...` in the header table of this brief does not match any commit. The contract files are unchanged. The owner decides which value the brief should carry.
+- The tree hash of `contracts/purchase-request-v1/` is `5d49973d1cb592bf2d152d51ef0ae9b67944419f`, and has been since the commit that added the contract (`3bd35bf`). The contract files are unchanged. An earlier wording of this point said the header value `62f0a6f7...` matched no commit. That was wrong and is corrected in 14.6.
 - Sections 2 to 4 above still show the state of 2026-11-08 and are kept as a record.
 
 ## 14. Status update, 2026-11-14 (phase 3: database)
